@@ -9,7 +9,7 @@ import {
   Image as ImageIcon,
   Scroll,
   Flower2,
-  HeartHandshake,
+  MessageCircle,
   Compass,
   BookLock,
   Gamepad2,
@@ -23,7 +23,7 @@ export const SANCTUARY_ROOMS = [
   { key: 'gallery', title: 'Memory Gallery', path: '/sanctuary/gallery', icon: ImageIcon, color: 'text-sky-400' },
   { key: 'letters', title: 'Letter Room', path: '/sanctuary/letters', icon: Scroll, color: 'text-rose-300' },
   { key: 'garden', title: 'Our Garden', path: '/sanctuary/garden', icon: Flower2, color: 'text-emerald-400' },
-  { key: 'emotional', title: 'Emotional Space', path: '/sanctuary/emotional', icon: HeartHandshake, color: 'text-pink-400' },
+  { key: 'conversation', title: 'Talk to Emman', path: '/sanctuary/conversation', icon: MessageCircle, color: 'text-rose-400' },
   { key: 'universe', title: 'Our Universe', path: '/sanctuary/universe', icon: Compass, color: 'text-cyan-300' },
   { key: 'journal', title: 'Private Journal', path: '/sanctuary/journal', icon: BookLock, color: 'text-indigo-300' },
   { key: 'arcade', title: 'Little Arcade', path: '/sanctuary/arcade', icon: Gamepad2, color: 'text-orange-400' },
@@ -31,11 +31,12 @@ export const SANCTUARY_ROOMS = [
 ];
 
 interface SanctuaryNavProps {
+  onOpenChat?: () => void;
   onOpenMochi?: () => void;
   onOpenAdminAuth?: () => void;
 }
 
-export function SanctuaryNav({ onOpenMochi, onOpenAdminAuth }: SanctuaryNavProps) {
+export function SanctuaryNav({ onOpenChat, onOpenMochi, onOpenAdminAuth }: SanctuaryNavProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -77,16 +78,16 @@ export function SanctuaryNav({ onOpenMochi, onOpenAdminAuth }: SanctuaryNavProps
         {/* Separator */}
         <div className="w-[1px] h-7 bg-slate-800 mx-1" />
 
-        {/* Mochi AI Companion Trigger */}
+        {/* Talk to Emman Trigger */}
         <button
           type="button"
-          onClick={onOpenMochi}
-          className="relative px-3 py-2.5 rounded-xl flex flex-col items-center gap-1 text-sanctuary-ether hover:bg-sanctuary-ether/10 border border-sanctuary-ether/30 transition-all group"
-          title="Speak with Mochi"
+          onClick={onOpenChat || onOpenMochi}
+          className="relative px-3 py-2.5 rounded-xl flex flex-col items-center gap-1 text-rose-300 hover:bg-rose-950/30 border border-rose-500/30 transition-all group cursor-pointer"
+          title="Talk to Emman"
         >
-          <Sparkles className="w-4 h-4 text-sanctuary-ether group-hover:rotate-12 transition-transform" />
-          <span className="text-[10px] font-serif tracking-wider text-sanctuary-ether hidden md:inline-block">
-            Mochi
+          <MessageCircle className="w-4 h-4 text-rose-300 group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-serif tracking-wider text-rose-200 hidden md:inline-block">
+            Talk to Emman
           </span>
         </button>
 

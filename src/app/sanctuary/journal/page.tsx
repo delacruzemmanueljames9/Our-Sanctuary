@@ -34,7 +34,7 @@ interface SharedEntry {
 }
 
 export default function PrivateJournalPage() {
-  const [activeTab, setActiveTab] = useState<'emman' | 'lei' | 'shared'>('emman');
+  const [activeTab, setActiveTab] = useState<'lei' | 'shared'>('lei');
   const [hasPin, setHasPin] = useState<boolean>(true);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
@@ -52,7 +52,7 @@ export default function PrivateJournalPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newMood, setNewMood] = useState('Peaceful');
-  const [sharedAuthor, setSharedAuthor] = useState<'emman' | 'lei'>('emman');
+  const [sharedAuthor, setSharedAuthor] = useState<'emman' | 'lei'>('lei');
 
   const checkUnlockStatus = async (user: 'emman' | 'lei') => {
     try {
@@ -296,26 +296,15 @@ export default function PrivateJournalPage() {
               <span className="text-xs text-indigo-300">Personal &amp; Shared Archives</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-serif text-white">
-              Sacred Reflections &amp; Shared Chronicles
+              Lei&rsquo;s Sacred Reflections &amp; Shared Chronicles
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-xl">
-              Private journals are strictly isolated by your individual passkey. The Shared Journal is an open space for both of you to write together.
+              Your private journal is secured by your individual passkey. The Shared Journal is an open space for both of you to write together.
             </p>
           </div>
 
-          {/* Tab Switcher: Emman / Lei / Shared */}
+          {/* Tab Switcher: Lei / Shared */}
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
-            <button
-              type="button"
-              onClick={() => setActiveTab('emman')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-serif tracking-wider transition-all cursor-pointer ${
-                activeTab === 'emman'
-                  ? 'bg-sanctuary-gold text-slate-950 font-semibold shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Emman&rsquo;s Private
-            </button>
             <button
               type="button"
               onClick={() => setActiveTab('lei')}
@@ -411,7 +400,7 @@ export default function PrivateJournalPage() {
                 </div>
 
                 <h2 className="text-xl font-serif text-white mb-1">
-                  {activeTab === 'emman' ? "Emman's Private Chamber" : "Lei's Private Chamber"}
+                  Lei&apos;s Private Chamber
                 </h2>
                 <p className="text-xs text-slate-400 mb-6">
                   {hasPin
@@ -490,7 +479,7 @@ export default function PrivateJournalPage() {
                     <ShieldCheck className="w-5 h-5 text-emerald-400" />
                     <div>
                       <h2 className="text-lg font-serif text-white">
-                        {activeTab === 'emman' ? 'Emman’s Private Journal' : 'Lei’s Private Journal'}
+                        Lei&rsquo;s Private Journal
                       </h2>
                       <p className="text-xs text-emerald-400/80">Vault Active &bull; Zero-Knowledge Isolation</p>
                     </div>
@@ -604,36 +593,6 @@ export default function PrivateJournalPage() {
                 </p>
 
                 <form onSubmit={handleAddEntry} className="space-y-4">
-                  {activeTab === 'shared' && (
-                    <div>
-                      <label className="block text-xs font-serif text-indigo-300 mb-1">Author</label>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSharedAuthor('emman')}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-serif ${
-                            sharedAuthor === 'emman'
-                              ? 'bg-sanctuary-gold text-slate-950 font-semibold'
-                              : 'bg-slate-900 text-slate-400'
-                          }`}
-                        >
-                          Emman
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSharedAuthor('lei')}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-serif ${
-                            sharedAuthor === 'lei'
-                              ? 'bg-sanctuary-rose text-slate-950 font-semibold'
-                              : 'bg-slate-900 text-slate-400'
-                          }`}
-                        >
-                          Lei
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <div>
                     <label className="block text-xs font-serif text-indigo-300 mb-1">Title</label>
                     <input

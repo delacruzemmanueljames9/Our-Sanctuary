@@ -10,10 +10,10 @@ import {
   Sparkles,
   ArrowRight,
   ArrowLeft,
-  Bot,
+  MessageCircle,
   ShieldAlert,
 } from 'lucide-react';
-import { MochiChatModal } from '@/components/mochi/MochiChatModal';
+import { TalkToEmmanModal } from '@/components/sanctuary/TalkToEmmanModal';
 import { AdminAuthModal } from '@/components/admin/AdminAuthModal';
 
 const SANCTUARY_ROOMS_CATALOG = [
@@ -51,15 +51,15 @@ const SANCTUARY_ROOMS_CATALOG = [
     textColor: 'group-hover:text-emerald-300',
   },
   {
-    key: 'emotional',
-    emoji: '🫂',
-    title: 'Emotional Space',
-    tagline: 'Safe mood check-ins & gentle comfort',
-    path: '/sanctuary/emotional',
-    borderColor: 'border-pink-500/30 hover:border-pink-400/70',
-    bgColor: 'bg-pink-950/20 hover:bg-pink-900/30',
-    glowColor: 'hover:shadow-[0_0_22px_rgba(244,114,182,0.18)]',
-    textColor: 'group-hover:text-pink-300',
+    key: 'conversation',
+    emoji: '💬',
+    title: 'Talk to Emman',
+    tagline: 'Direct messages & real-time heart-to-heart',
+    path: '/sanctuary/conversation',
+    borderColor: 'border-rose-500/30 hover:border-rose-400/70',
+    bgColor: 'bg-rose-950/20 hover:bg-rose-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(251,113,133,0.18)]',
+    textColor: 'group-hover:text-rose-300',
   },
   {
     key: 'universe',
@@ -111,7 +111,7 @@ function SanctuaryPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showRoomSelection, setShowRoomSelection] = useState<boolean>(false);
-  const [isMochiOpen, setIsMochiOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState<boolean>(false);
 
   // Auto-open Room Selection when arriving back from a room (?explore=true)
@@ -252,15 +252,15 @@ function SanctuaryPageInner() {
                 ))}
               </div>
 
-              {/* Footer — Mochi AI + tagline */}
+              {/* Footer — Talk to Emman + tagline */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">
                 <button
                   type="button"
-                  onClick={() => setIsMochiOpen(true)}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 text-xs hover:bg-cyan-900/40 hover:text-white transition-all cursor-pointer shadow-sm"
+                  onClick={() => setIsChatOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs hover:bg-rose-900/40 hover:text-white transition-all cursor-pointer shadow-sm"
                 >
-                  <Bot className="w-4 h-4" />
-                  <span className="font-serif tracking-wider">Mochi AI Companion</span>
+                  <MessageCircle className="w-4 h-4 text-rose-400" />
+                  <span className="font-serif tracking-wider">Talk to Emman</span>
                 </button>
                 <p className="text-[10px] text-slate-600 font-serif italic hidden sm:block">
                   A Celestial Sanctuary for Lei
@@ -271,8 +271,8 @@ function SanctuaryPageInner() {
         )}
       </AnimatePresence>
 
-      {/* Mochi AI Companion Modal */}
-      <MochiChatModal isOpen={isMochiOpen} onClose={() => setIsMochiOpen(false)} />
+      {/* Talk to Emman Direct Messenger Modal */}
+      <TalkToEmmanModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       {/* Admin Authentication Modal */}
       <AdminAuthModal isOpen={isAdminAuthOpen} onClose={() => setIsAdminAuthOpen(false)} />
     </div>
