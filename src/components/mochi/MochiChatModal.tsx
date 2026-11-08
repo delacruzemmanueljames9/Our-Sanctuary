@@ -41,7 +41,7 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
   // Human Direct Message Channel State (Emman Live Reply)
   const [directMessages, setDirectMessages] = useState<DirectMsgItem[]>([]);
   const [directInput, setDirectInput] = useState<string>('');
-  const [directAuthor, setDirectAuthor] = useState<'emman' | 'lei'>('emman');
+  const [directAuthor, setDirectAuthor] = useState<'emman' | 'lei'>('lei');
   const [isSendingDirect, setIsSendingDirect] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -225,7 +225,7 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Emman Live Reply (Human Channel)</span>
+            <span>Chat with Emman (Direct)</span>
           </button>
         </div>
 
@@ -329,12 +329,12 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
           </div>
         )}
 
-        {/* CHANNEL 2: HUMAN DIRECT CHANNEL (EMMAN LIVE REPLY) */}
+        {/* CHANNEL 2: HUMAN DIRECT CHANNEL (MESSAGE EMMAN DIRECTLY) */}
         {activeChannel === 'human' && (
           <div className="flex-1 flex flex-col min-h-0">
             <div className="p-3 bg-amber-950/30 border-b border-amber-900/30 text-center">
               <span className="text-[11px] font-serif text-sanctuary-gold">
-                ✨ Human Direct Message Channel &bull; Direct &amp; Transparent
+                ✨ Direct Message Channel with Emman &bull; Messages reach Emman&apos;s Console live
               </span>
             </div>
 
@@ -342,7 +342,7 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {directMessages.length === 0 ? (
                 <div className="text-center py-16 text-slate-500 font-serif text-xs">
-                  No direct messages yet. Leave a note for each other!
+                  No direct messages yet. Leave a note for Emman anytime!
                 </div>
               ) : (
                 directMessages.map((msg) => {
@@ -362,7 +362,7 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
                               : 'bg-rose-950 border border-rose-500/50 text-rose-300'
                           }`}
                         >
-                          {isEmman ? 'Emman (Human Guardian)' : 'Lei (Beloved)'}
+                          {isEmman ? 'Emman' : 'Lei (You)'}
                         </span>
                         <span className="text-slate-500">
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -386,35 +386,11 @@ export function MochiChatModal({ isOpen, onClose }: MochiChatModalProps) {
 
             {/* Direct Message Input Bar */}
             <form onSubmit={sendHumanMessage} className="p-3 border-t border-slate-800 flex items-center gap-2 bg-slate-950/90">
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setDirectAuthor('emman')}
-                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-serif ${
-                    directAuthor === 'emman'
-                      ? 'bg-sanctuary-gold text-slate-950 font-bold'
-                      : 'bg-slate-900 text-slate-400'
-                  }`}
-                >
-                  As Emman
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDirectAuthor('lei')}
-                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-serif ${
-                    directAuthor === 'lei'
-                      ? 'bg-sanctuary-rose text-slate-950 font-bold'
-                      : 'bg-slate-900 text-slate-400'
-                  }`}
-                >
-                  As Lei
-                </button>
-              </div>
               <input
                 type="text"
                 value={directInput}
                 onChange={(e) => setDirectInput(e.target.value)}
-                placeholder={`Leave a message as ${directAuthor === 'emman' ? 'Emman' : 'Lei'}...`}
+                placeholder="Type a direct message to Emman..."
                 className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-sanctuary-gold text-xs text-white placeholder-slate-500 outline-none"
               />
               <button

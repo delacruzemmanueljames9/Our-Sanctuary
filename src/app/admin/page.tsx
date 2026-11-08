@@ -27,17 +27,35 @@ import {
   Radio,
   X,
   Droplets,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { SanctuarySettings, AdminAuditLog, MemoryItem, Letter, GardenPlant, UniverseDream, CalendarEvent } from '@/types/sanctuary';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
+
+interface DirectMessageItem {
+  id: string;
+  sender: 'emman' | 'lei';
+  recipient: 'emman' | 'lei';
+  message: string;
+  isHuman: boolean;
+  createdAt: string;
+}
 
 export default function AdminControlCenter() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [settings, setSettings] = useState<SanctuarySettings | null>(null);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
-  const [activeTab, setActiveTab] = useState<'rooms' | 'modules' | 'theme' | 'backup' | 'logs'>('rooms');
+  const [activeTab, setActiveTab] = useState<'messages' | 'rooms' | 'modules' | 'theme' | 'backup' | 'logs'>('messages');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Direct Messages with Lei State
+  const [directMessages, setDirectMessages] = useState<DirectMessageItem[]>([]);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
 
   // Room Content Management State
   const [activeRoomTab, setActiveRoomTab] = useState<'memories' | 'letters' | 'garden' | 'universe' | 'calendar'>('memories');
@@ -70,12 +88,64 @@ export default function AdminControlCenter() {
           setIsAdmin(true);
           fetchAdminData();
           fetchRoomData();
+          fetchDirectMessages();
         } else {
           setIsAdmin(false);
         }
       })
       .catch(() => setIsAdmin(false));
   }, []);
+
+  const fetchDirectMessages = async () => {
+    try {
+      const res = await fetch('/api/messages');
+      const data = await res.json();
+      if (data.messages) setDirectMessages(data.messages);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useSanctuaryRealtime({
+    table: 'direct_messages',
+    onChange: () => {
+      fetchDirectMessages();
+    },
+  });
+
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [directMessages, activeTab]);
+
+  const handleSendReply = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!replyText.trim() || sendingReply) return;
+
+    setSendingReply(true);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: 'emman',
+          recipient: 'lei',
+          message: replyText.trim(),
+          isHuman: true,
+        }),
+      });
+
+      if (res.ok) {
+        setReplyText('');
+        fetchDirectMessages();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSendingReply(false);
+    }
+  };
 
   const fetchAdminData = async () => {
     try {
@@ -320,6 +390,7 @@ export default function AdminControlCenter() {
       {/* Admin Tab Switcher */}
       <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
         {[
+          { key: 'messages', label: `💬 Chat with Lei (${directMessages.length})`, icon: MessageSquare },
           { key: 'rooms', label: 'Room Content Control', icon: Sliders },
           { key: 'modules', label: 'Sanctuary Modules', icon: Layers },
           { key: 'theme', label: 'Celestial Themes', icon: Palette },
@@ -345,6 +416,122 @@ export default function AdminControlCenter() {
           );
         })}
       </div>
+
+      {/* TAB 0: DIRECT MESSAGES CONSOLE WITH LEI */}
+      {activeTab === 'messages' && (
+        <div className="rounded-3xl celestial-panel border border-amber-500/40 shadow-2xl flex flex-col h-[600px] overflow-hidden mb-8">
+          {/* Header */}
+          <div className="p-4 px-6 border-b border-amber-900/30 bg-slate-950/70 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-sanctuary-gold/40 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-sanctuary-gold" />
+              </div>
+              <div>
+                <h3 className="font-serif text-base text-white font-semibold">
+                  Direct Messenger with Lei
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Live two-way communication when Lei chooses to chat with you &bull; Synced in Realtime
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-serif">
+              <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
+              <span>Realtime Live</span>
+            </div>
+          </div>
+
+          {/* Messages Thread */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5 bg-slate-950/30">
+            {directMessages.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 font-serif text-sm">
+                No direct messages yet. When Lei chooses to chat with you, her messages appear here instantly.
+              </div>
+            ) : (
+              directMessages.map((msg) => {
+                const isEmman = msg.sender === 'emman';
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex flex-col ${isEmman ? 'items-end' : 'items-start'}`}
+                  >
+                    <div className="flex items-center gap-2 mb-1 text-[10px] font-serif">
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-semibold ${
+                          isEmman
+                            ? 'bg-amber-950 border border-sanctuary-gold/50 text-sanctuary-gold'
+                            : 'bg-rose-950 border border-rose-500/50 text-rose-300'
+                        }`}
+                      >
+                        {isEmman ? 'You (Emman)' : 'Lei (Beloved)'}
+                      </span>
+                      <span className="text-slate-500">
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div
+                      className={`max-w-[80%] p-4 rounded-2xl text-xs md:text-sm leading-relaxed ${
+                        isEmman
+                          ? 'bg-amber-950/40 text-amber-100 border border-sanctuary-gold/40 rounded-tr-none shadow-sm'
+                          : 'bg-rose-950/40 text-rose-100 border border-rose-500/40 rounded-tl-none shadow-sm'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{msg.message}</p>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Quick Reply Suggestions */}
+          <div className="px-4 py-2 border-t border-slate-800/80 bg-slate-950/50 flex gap-2 overflow-x-auto scrollbar-none">
+            <span className="text-[10px] font-serif uppercase tracking-wider text-slate-500 flex items-center shrink-0">
+              Quick:
+            </span>
+            {[
+              "I'm right here for you, my love ❤️",
+              'Thinking of you always ✨',
+              'Just checked our garden blossoms 🌸',
+              'I love you so much! 💖',
+            ].map((quick, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setReplyText(quick)}
+                className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700/80 hover:border-sanctuary-gold text-slate-300 text-[10px] font-serif whitespace-nowrap cursor-pointer transition-colors"
+              >
+                {quick}
+              </button>
+            ))}
+          </div>
+
+          {/* Reply Input Bar */}
+          <form
+            onSubmit={handleSendReply}
+            className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/90 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Reply to Lei as Emman..."
+              className="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-sanctuary-gold text-xs text-white placeholder-slate-500 outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={sendingReply || !replyText.trim()}
+              className="px-5 py-3 rounded-xl bg-sanctuary-gold text-slate-950 font-serif text-xs font-semibold hover:bg-yellow-400 transition-colors disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send Reply</span>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* TAB 1: ROOM CONTENT CONTROL */}
       {activeTab === 'rooms' && (
