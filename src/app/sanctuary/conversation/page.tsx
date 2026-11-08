@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Heart, Trash2, WifiOff, Loader2 } from 'lucide-react';
 import { RoomShell } from '@/components/sanctuary/RoomShell';
 import { useSanctuaryRealtime, RealtimeStatus } from '@/hooks/useSanctuaryRealtime';
+import { useVisualViewport } from '@/hooks/useVisualViewport';
 
 interface DirectMsgItem {
   id: string;
@@ -64,6 +65,11 @@ export default function ConversationRoomPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const knownIds = useRef<Set<string>>(new Set());
 
+  // Tracks real visible height — shrinks when virtual keyboard opens on iOS/Android
+  const { viewportHeight } = useVisualViewport();
+  // 56px = RoomShell top bar height
+  const chatHeight = Math.max(300, viewportHeight - 56);
+
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
@@ -101,19 +107,10 @@ export default function ConversationRoomPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Scroll input into view when virtual keyboard opens on mobile
+  // Auto-scroll to bottom when keyboard opens (visualViewport resize triggers re-render → new chatHeight → layout shifts up → scroll needed)
   useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    const handleFocus = () => {
-      setTimeout(() => {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        scrollToBottom();
-      }, 300);
-    };
-    el.addEventListener('focus', handleFocus);
-    return () => el.removeEventListener('focus', handleFocus);
-  }, [scrollToBottom]);
+    scrollToBottom();
+  }, [chatHeight, scrollToBottom]);
 
   // Supabase Realtime subscription
   const { status: realtimeStatus } = useSanctuaryRealtime({
@@ -233,10 +230,10 @@ export default function ConversationRoomPage() {
 
   return (
     <RoomShell>
-      {/* Keyboard-safe full height: dvh shrinks when keyboard opens */}
+      {/* visualViewport-driven height: shrinks exactly when keyboard opens on iOS/Android */}
       <div
-        className="flex flex-col px-3 py-4 md:px-12 md:py-8 max-w-4xl mx-auto"
-        style={{ height: 'calc(100dvh - 56px)', minHeight: 'calc(100svh - 56px)' }}
+        className="flex flex-col px-3 py-4 md:px-12 md:py-8 max-w-4xl mx-auto transition-[height] duration-100"
+        style={{ height: `${chatHeight}px` }}
       >
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-rose-900/20 shrink-0">
