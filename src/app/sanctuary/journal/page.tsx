@@ -14,18 +14,27 @@ import {
   AlertCircle,
   ShieldCheck,
   X,
+  Key,
+  CheckCircle2,
 } from 'lucide-react';
 import { PrivateJournalEntry } from '@/types/sanctuary';
 
 export default function PrivateJournalPage() {
   const [currentUser, setCurrentUser] = useState<'emman' | 'lei'>('emman');
+  const [hasPin, setHasPin] = useState<boolean>(true);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
+  const [confirmPinInput, setConfirmPinInput] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   const [entries, setEntries] = useState<PrivateJournalEntry[]>([]);
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+  const [isChangePinOpen, setIsChangePinOpen] = useState<boolean>(false);
+  const [oldPinInput, setOldPinInput] = useState<string>('');
+  const [newPinChangeInput, setNewPinChangeInput] = useState<string>('');
+
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newMood, setNewMood] = useState('Peaceful');
@@ -34,6 +43,7 @@ export default function PrivateJournalPage() {
     try {
       const res = await fetch(`/api/auth/journal?user=${user}`);
       const data = await res.json();
+      setHasPin(Boolean(data.hasPin));
       if (data.unlocked) {
         setIsUnlocked(true);
         fetchEntries(user);
@@ -47,8 +57,55 @@ export default function PrivateJournalPage() {
   };
 
   useEffect(() => {
+    setPinInput('');
+    setConfirmPinInput('');
+    setErrorMsg(null);
+    setSuccessMsg(null);
     checkUnlockStatus(currentUser);
   }, [currentUser]);
+
+  const handleSetupPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinInput.trim()) return;
+
+    if (pinInput.trim().length < 4) {
+      setErrorMsg('PIN must be at least 4 digits.');
+      return;
+    }
+
+    if (pinInput.trim() !== confirmPinInput.trim()) {
+      setErrorMsg('PINs do not match. Please re-enter.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/auth/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: currentUser, pin: pinInput.trim(), action: 'setup' }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setHasPin(true);
+        setIsUnlocked(true);
+        setPinInput('');
+        setConfirmPinInput('');
+        setSuccessMsg(`Your personal passkey has been sealed.`);
+        fetchEntries(currentUser);
+      } else {
+        setErrorMsg(data.error || 'Failed to seal your passkey.');
+      }
+    } catch {
+      setErrorMsg('Celestial connection disruption. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +132,48 @@ export default function PrivateJournalPage() {
       }
     } catch {
       setErrorMsg('Failed to unlock journal.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPinInput.trim() || !newPinChangeInput.trim()) return;
+
+    if (newPinChangeInput.trim().length < 4) {
+      setErrorMsg('New PIN must be at least 4 digits.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/auth/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: currentUser,
+          action: 'change_pin',
+          oldPin: oldPinInput.trim(),
+          pin: newPinChangeInput.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setIsChangePinOpen(false);
+        setOldPinInput('');
+        setNewPinChangeInput('');
+        setSuccessMsg('Your personal passkey was successfully updated.');
+        setTimeout(() => setSuccessMsg(null), 3000);
+      } else {
+        setErrorMsg(data.error || 'Failed to update PIN.');
+      }
+    } catch {
+      setErrorMsg('Failed to update PIN.');
     } finally {
       setLoading(false);
     }
@@ -145,7 +244,7 @@ export default function PrivateJournalPage() {
             Sacred Personal Archives
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Each person has their own isolated lock. Neither the gate key nor admin powers can peer into another&rsquo;s sacred pages.
+            Each person creates their own private passkey. Neither the gate key nor admin powers can peer into another&rsquo;s sacred pages.
           </p>
         </div>
 
@@ -183,77 +282,155 @@ export default function PrivateJournalPage() {
       </div>
 
       {!isUnlocked ? (
-        /* Locked Vault Interface */
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md mx-auto p-8 rounded-3xl celestial-panel border border-indigo-500/30 text-center shadow-2xl mt-8"
-        >
-          <div className="w-16 h-16 rounded-3xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <BookLock className="w-8 h-8 text-indigo-300 animate-pulse" />
-          </div>
-
-          <h2 className="text-lg font-serif text-white mb-1">
-            {currentUser === 'emman' ? 'Emman’s' : 'Lei’s'} Sealed Journal
-          </h2>
-          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            Please enter your private passkey to unseal your journal. This key is never shared or transmitted in client bundles.
-          </p>
-
-          {errorMsg && (
-            <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs text-left">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Enter personal PIN"
-                className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
-                autoFocus
-              />
-              <KeyRound className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        !hasPin ? (
+          /* Create PIN First Time Setup Screen */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md mx-auto p-8 rounded-3xl celestial-panel border border-indigo-500/40 text-center shadow-2xl mt-8"
+          >
+            <div className="w-16 h-16 rounded-3xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Key className="w-8 h-8 text-indigo-300 animate-pulse" />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || !pinInput.trim()}
-              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Unlock className="w-4 h-4" />
-              <span>{loading ? 'Unsealing...' : 'Unseal My Journal'}</span>
-            </button>
-          </form>
+            <h2 className="text-lg font-serif text-white mb-1">
+              Create Your Personal Passkey
+            </h2>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+              Welcome, <span className="text-sanctuary-gold-light capitalize">{currentUser}</span>. You have not set a passkey yet. Choose a private PIN (4+ digits) that only you know to seal your journal.
+            </p>
 
-          <div className="mt-4 text-[10px] text-slate-500 tracking-wider">
-            ZERO-KNOWLEDGE PERSONAL ISOLATION ACTIVE
-          </div>
-        </motion.div>
+            {errorMsg && (
+              <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs text-left">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSetupPin} className="space-y-4">
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  required
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Choose your secret PIN (e.g. 4 digits)"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
+                  autoFocus
+                />
+                <input
+                  type="password"
+                  required
+                  value={confirmPinInput}
+                  onChange={(e) => setConfirmPinInput(e.target.value)}
+                  placeholder="Confirm your secret PIN"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !pinInput.trim() || !confirmPinInput.trim()}
+                className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{loading ? 'Sealing...' : 'Seal My Private Passkey'}</span>
+              </button>
+            </form>
+
+            <div className="mt-4 text-[10px] text-slate-500 tracking-wider">
+              YOUR PASSKEY IS STORED SECURELY & ONLY KNOWN TO YOU
+            </div>
+          </motion.div>
+        ) : (
+          /* Normal Unlock Screen */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md mx-auto p-8 rounded-3xl celestial-panel border border-indigo-500/30 text-center shadow-2xl mt-8"
+          >
+            <div className="w-16 h-16 rounded-3xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <BookLock className="w-8 h-8 text-indigo-300 animate-pulse" />
+            </div>
+
+            <h2 className="text-lg font-serif text-white mb-1">
+              {currentUser === 'emman' ? 'Emman’s' : 'Lei’s'} Sealed Journal
+            </h2>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+              Please enter your private passkey to unseal your journal.
+            </p>
+
+            {errorMsg && (
+              <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs text-left">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Enter your personal PIN"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
+                  autoFocus
+                />
+                <KeyRound className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !pinInput.trim()}
+                className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Unlock className="w-4 h-4" />
+                <span>{loading ? 'Unsealing...' : 'Unseal My Journal'}</span>
+              </button>
+            </form>
+
+            <div className="mt-4 text-[10px] text-slate-500 tracking-wider">
+              ZERO-KNOWLEDGE PERSONAL ISOLATION ACTIVE
+            </div>
+          </motion.div>
+        )
       ) : (
         /* Unlocked Journal Pages */
         <div className="space-y-6">
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30">
             <div className="flex items-center gap-2 text-xs text-indigo-200">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>
                 Personal vault open for {currentUser === 'emman' ? 'Emman' : 'Lei'}.
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsAddOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold hover:bg-indigo-400 transition-all shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Write Reflection</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsChangePinOpen(true)}
+                className="text-xs text-slate-400 hover:text-indigo-300 px-3 py-1.5 rounded-xl border border-slate-800 transition-colors"
+              >
+                Change Passkey
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAddOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold hover:bg-indigo-400 transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Write Reflection</span>
+              </button>
+            </div>
           </div>
+
+          {successMsg && (
+            <div className="p-3 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           {/* Entries list */}
           <div className="space-y-4">
@@ -306,6 +483,65 @@ export default function PrivateJournalPage() {
           </div>
         </div>
       )}
+
+      {/* Change PIN Modal */}
+      <AnimatePresence>
+        {isChangePinOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-sm p-6 rounded-3xl celestial-panel border border-indigo-500/40 shadow-2xl"
+            >
+              <button
+                type="button"
+                onClick={() => setIsChangePinOpen(false)}
+                className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="font-serif text-base text-white mb-1">Change Journal Passkey</h3>
+              <p className="text-xs text-slate-400 mb-4">Update your secret personal PIN</p>
+
+              <form onSubmit={handleChangePin} className="space-y-3">
+                <input
+                  type="password"
+                  required
+                  value={oldPinInput}
+                  onChange={(e) => setOldPinInput(e.target.value)}
+                  placeholder="Current PIN"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
+                />
+                <input
+                  type="password"
+                  required
+                  value={newPinChangeInput}
+                  onChange={(e) => setNewPinChangeInput(e.target.value)}
+                  placeholder="New PIN (4+ digits)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
+                />
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePinOpen(false)}
+                    className="px-3 py-1.5 rounded-xl text-xs text-slate-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold"
+                  >
+                    Update Passkey
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Journal Modal */}
       <AnimatePresence>

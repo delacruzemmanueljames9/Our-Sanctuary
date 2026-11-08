@@ -506,6 +506,22 @@ class SanctuaryStore {
   }
 
   // Private Journals: strictly isolated by author
+  private journalPins: Record<'emman' | 'lei', string | null> = {
+    emman: null,
+    lei: null,
+  };
+
+  getJournalPin(user: 'emman' | 'lei'): string | null {
+    return this.journalPins[user] || null;
+  }
+  setJournalPin(user: 'emman' | 'lei', pin: string): void {
+    this.journalPins[user] = pin;
+    this.logAction('SET_JOURNAL_PIN', 'Journal', { user });
+  }
+  hasJournalPin(user: 'emman' | 'lei'): boolean {
+    return Boolean(this.journalPins[user]);
+  }
+
   getPrivateJournal(author: 'emman' | 'lei') {
     return this.state.privateJournals.filter(j => j.author === author);
   }

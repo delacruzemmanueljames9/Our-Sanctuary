@@ -3,7 +3,7 @@ import { checkRateLimit, recordFailedAttempt, clearRateLimit } from '@/lib/auth/
 import { createAdminSessionToken, verifyIsAdmin } from '@/lib/auth/tokens';
 import { sanctuaryStore } from '@/lib/supabase/mock-store';
 
-const ADMIN_SECRET = process.env.EMMAN_ADMIN_SECRET || 'emman_celestial_admin_2026';
+const ADMIN_SECRET = process.env.EMMAN_ADMIN_SECRET || '091708';
 
 export async function POST(req: NextRequest) {
   try {

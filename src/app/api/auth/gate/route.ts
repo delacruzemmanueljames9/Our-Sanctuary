@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit } from '@/lib/auth/rate-limit';
 import { createGateSessionToken, verifyToken } from '@/lib/auth/tokens';
 
-const CORRECT_PIN = process.env.SANCTUARY_GATE_PIN || '110826';
+const CORRECT_PIN = process.env.SANCTUARY_GATE_PIN || '021524';
 
 export async function POST(req: NextRequest) {
   try {

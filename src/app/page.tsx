@@ -74,9 +74,9 @@ export default function GatePage() {
         />
       </CanvasContainer>
 
-      {/* Atmospheric Vignette & Gradients */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#05070f] via-transparent to-[#05070f]/60" />
-      <div className="absolute inset-0 pointer-events-none radial-vignette" />
+      {/* Atmospheric Vignette & Gradients (Subtle to keep 3D world crystal clear) */}
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#05070f]/40 via-transparent to-[#05070f]/40" />
+      <div className="absolute inset-0 pointer-events-none radial-vignette opacity-50" />
 
       {/* Top Banner Navigation */}
       <header className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-30">
@@ -141,16 +141,16 @@ export default function GatePage() {
         </AnimatePresence>
       </div>
 
-      {/* Floating 6-digit PIN Keypad */}
-      <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center px-4">
+      {/* Centered 6-digit PIN Keypad Floating Over 3D Scene */}
+      <div className="absolute inset-0 z-20 flex items-center justify-center p-4 pointer-events-none">
         <AnimatePresence>
           {gateState !== 'approaching' && gateState !== 'granted' && (
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="w-full max-w-sm"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: -20 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="w-full max-w-sm pointer-events-auto mt-12 md:mt-16"
             >
               <PinPad
                 onSuccess={handleSuccess}
