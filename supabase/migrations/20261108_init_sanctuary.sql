@@ -341,3 +341,24 @@ END $$;
 INSERT INTO direct_messages (sender, recipient, message, is_human)
 VALUES ('emman', 'lei', 'Hi sweetie, whats bothering you now?', true)
 ON CONFLICT DO NOTHING;
+
+-- 9. Seed 16 Original Memories
+INSERT INTO memories (title, description, media_url, media_type, memory_date, location, is_favorite, uploaded_by)
+VALUES
+  ('Judy''s Place', 'From that day at Judy''s... everything changed. 💜', 'https://image2url.com/r2/default/images/1772452296568-066f9cb0-97a8-4334-8cf7-a5e0610b8c91.jpg', 'image', '2023-02-14', 'Judy''s', true, 'emman'),
+  ('First JS Prom', 'Our first JS Prom — the rhythm of our hearts together. 💜✨', 'https://image2url.com/r2/default/images/1772452426364-0defc4cc-39d6-46b4-904c-73804a9c1f05.jpeg', 'image', '2023-03-04', 'JS Prom Ball', true, 'emman'),
+  ('Our First Date', 'Our first date — the start of our forever. 💍✨', 'https://image2url.com/r2/default/images/1772452839431-00fbd3a2-c32e-4638-b861-7b9af905983a.png', 'image', '2023-04-15', 'Our Special Spot', true, 'emman'),
+  ('A Sealed Promise', 'That kiss sealed every promise we made. 💜✨', 'https://image2url.com/r2/default/images/1772453355444-41bdd217-b4df-460c-a27a-104a85180195.jpg', 'image', '2023-05-20', 'Under The Starlight', true, 'emman'),
+  ('Simple Moment', 'In this simple moment together, I found my forever.', 'https://image2url.com/r2/default/images/1772504833109-fb9b049c-a9c5-4b06-be98-1e616f7ae162.jpg', 'image', '2023-06-12', 'Quiet Moments', true, 'emman'),
+  ('Melody of Laughter', 'Your laughter that day was the melody my heart still dances to. 💜✨', 'https://image2url.com/r2/default/images/1772507925212-ffa5231a-19c4-4efb-a758-b358525f16d3.jpg', 'image', '2023-07-22', 'Sweet Afternoon', true, 'emman'),
+  ('A Forever Promise', 'Every ''I love you'' we share is a promise I''ll keep forever. 💛✨', 'https://image2url.com/r2/default/images/1772505257752-7c4f65be-ac06-4d30-bdd4-7dd19356ab2f.jpeg', 'image', '2023-08-30', 'Every Moment', true, 'emman'),
+  ('Meeting Family', 'That day wasn''t just about meeting family — it was about opening my world to you. 💜✨', 'https://image2url.com/r2/default/images/1772505386436-c5683dec-7147-4075-989d-9ab32f45ea97.jpg', 'image', '2023-09-18', 'Family Home', true, 'emman'),
+  ('On The Way Home', 'On the way home, my heart was full — because you were already part of my family. 💜✨', 'https://image2url.com/r2/default/images/1772505578552-1ed3578e-adb0-4e43-8a20-0fdf330ef831.jpg', 'image', '2023-09-18', 'Road Home', true, 'emman'),
+  ('Toast to Memories', 'Every sip was more than joy — it was a toast to the countless memories we''ve made together. 💜', 'https://image2url.com/r2/default/images/1772505726196-967c09f9-4317-447a-a971-544a2d380d1a.jpg', 'image', '2023-10-25', 'Cozy Cafe', true, 'emman'),
+  ('Celebration of Us', 'Dressed in joy and love, that night was a celebration of us. 💜✨', 'https://image2url.com/r2/default/images/1772505987509-9008f8d0-25b8-46db-a356-ac7392ce6315.blob', 'image', '2023-11-15', 'Grand Evening', true, 'emman'),
+  ('Shared Journey', 'Every medal and certificate means more because I shared the journey with you. 🎓💜', 'https://image2url.com/r2/default/images/1772506337655-9b972cb4-84a6-4383-8e6c-9d93520d1cf2.jpg', 'image', '2023-12-05', 'Academy Hall', true, 'emman'),
+  ('By The Shore', 'By the shore, with the waves as our witness, love is our forever horizon. 🌊💜✨', 'https://image2url.com/r2/default/images/1772506558227-a171ec74-c3fc-4ca5-9af1-3b18b6ff60f9.jpg', 'image', '2024-01-10', 'Ocean Shore', true, 'emman'),
+  ('Side by Side', 'Side by side, every achievement feels brighter because of you. 💜✨', 'https://image2url.com/r2/default/images/1772506695799-cb90d49c-a821-44bb-b9b3-08081605f9f8.blob', 'image', '2024-02-18', 'Ceremony Stage', true, 'emman'),
+  ('Grad Ball Lights', 'Under the lights of Grad Ball, every dance step felt like a promise. 💜✨', 'https://image2url.com/r2/default/images/1772506881171-82876548-c926-4d09-af8f-388d95bd8540.jpg', 'image', '2024-03-22', 'Graduation Ballroom', true, 'emman'),
+  ('Graduation Day', 'Graduation Day! 💜🎓', 'https://image2url.com/r2/default/images/1772417979098-57fb8ef8-cf07-4b8e-b5ba-adcc7e8a63a1.jpg', 'image', '2024-04-05', 'Graduation Grounds', true, 'emman')
+ON CONFLICT DO NOTHING;

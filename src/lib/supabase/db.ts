@@ -146,7 +146,7 @@ export async function getSanctuaryMemories(albumId?: string): Promise<MemoryItem
   const supabase = getServiceSupabase();
   if (supabase) {
     try {
-      let query = supabase.from('memories').select('*').order('memory_date', { ascending: false });
+      let query = supabase.from('memories').select('*').order('created_at', { ascending: true });
       if (albumId && albumId !== 'all') {
         query = query.eq('album_id', albumId);
       }
