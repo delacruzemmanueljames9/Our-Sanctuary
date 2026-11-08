@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sanctuaryStore } from '@/lib/supabase/mock-store';
 import { verifyIsAdmin } from '@/lib/auth/tokens';
+import {
+  getSanctuarySettings,
+  updateSanctuarySettings,
+  getSanctuaryMemories,
+  getSanctuaryLetters,
+  getSanctuaryPlants,
+  getSanctuaryDreams,
+  getSanctuaryCalendarEvents,
+  getSanctuaryAuditLogs,
+} from '@/lib/supabase/db';
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('sanctuary_admin_token')?.value;
@@ -18,8 +28,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ backup });
   }
 
-  const settings = sanctuaryStore.getSettings();
-  const auditLogs = sanctuaryStore.getAuditLogs();
+  if (action === 'rooms') {
+    const [memories, letters, plants, dreams, events, settings] = await Promise.all([
+      getSanctuaryMemories(),
+      getSanctuaryLetters(),
+      getSanctuaryPlants(),
+      getSanctuaryDreams(),
+      getSanctuaryCalendarEvents(),
+      getSanctuarySettings(),
+    ]);
+
+    return NextResponse.json({
+      memories,
+      letters,
+      plants,
+      dreams,
+      events,
+      settings,
+    });
+  }
+
+  const settings = await getSanctuarySettings();
+  const auditLogs = await getSanctuaryAuditLogs();
 
   return NextResponse.json({ settings, auditLogs });
 }
@@ -34,7 +64,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const updated = sanctuaryStore.updateSettings(body);
+    const updated = await updateSanctuarySettings(body);
     return NextResponse.json({ success: true, settings: updated });
   } catch {
     return NextResponse.json({ error: 'Failed to update sanctuary settings.' }, { status: 500 });

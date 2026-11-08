@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { GardenPlant } from '@/types/sanctuary';
 import { RoomShell } from '@/components/sanctuary/RoomShell';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 import dynamic from 'next/dynamic';
 
 // Dynamically load 3D scene (SSR off — Three.js requires browser)
@@ -71,6 +72,13 @@ export default function OurGardenPage() {
   useEffect(() => {
     fetchGarden();
   }, []);
+
+  useSanctuaryRealtime({
+    table: 'garden_plants',
+    onChange: () => {
+      fetchGarden();
+    },
+  });
 
   const handleWater = async (id: string) => {
     setWateringId(id);

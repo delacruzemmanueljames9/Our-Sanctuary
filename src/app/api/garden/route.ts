@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sanctuaryStore } from '@/lib/supabase/mock-store';
+import {
+  getSanctuaryPlants,
+  plantSanctuaryFlower,
+  waterSanctuaryPlant,
+  deleteSanctuaryPlant,
+} from '@/lib/supabase/db';
 
 export async function GET() {
-  const plants = sanctuaryStore.getGardenPlants();
+  const plants = await getSanctuaryPlants();
   return NextResponse.json({ plants });
 }
 
@@ -15,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name, plant type, and planter required.' }, { status: 400 });
     }
 
-    const plant = sanctuaryStore.plantFlower({
+    const plant = await plantSanctuaryFlower({
       plantType,
       name,
       dedication: dedication || '',
@@ -37,9 +42,22 @@ export async function PUT(req: NextRequest) {
     const { id } = body;
     if (!id) return NextResponse.json({ error: 'Plant ID required.' }, { status: 400 });
 
-    const plant = sanctuaryStore.waterPlant(id);
+    const plant = await waterSanctuaryPlant(id);
     return NextResponse.json({ success: true, plant });
   } catch {
     return NextResponse.json({ error: 'Failed to water plant.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Plant ID required.' }, { status: 400 });
+
+    await deleteSanctuaryPlant(id);
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: 'Failed to delete plant.' }, { status: 500 });
   }
 }

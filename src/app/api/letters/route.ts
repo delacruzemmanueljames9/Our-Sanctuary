@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sanctuaryStore } from '@/lib/supabase/mock-store';
+import {
+  getSanctuaryLetters,
+  sendSanctuaryLetter,
+  deleteSanctuaryLetter,
+} from '@/lib/supabase/db';
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const user = url.searchParams.get('user') as 'emman' | 'lei' | null;
-  const letters = sanctuaryStore.getLetters(user || undefined);
+  const letters = await getSanctuaryLetters(user || undefined);
   return NextResponse.json({ letters });
 }
 
@@ -17,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required letter fields.' }, { status: 400 });
     }
 
-    const letter = sanctuaryStore.sendLetter({
+    const letter = await sendSanctuaryLetter({
       sender,
       recipient,
       title,
@@ -35,15 +39,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function DELETE(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { id } = body;
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Letter ID required.' }, { status: 400 });
 
-    const updated = sanctuaryStore.markLetterAsRead(id);
-    return NextResponse.json({ success: true, letter: updated });
+    await deleteSanctuaryLetter(id);
+    return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: 'Failed to update letter.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete letter.' }, { status: 500 });
   }
 }

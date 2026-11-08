@@ -1,7 +1,5 @@
 'use client';
 
-import { RoomShell } from '@/components/sanctuary/RoomShell';
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,11 +16,24 @@ import {
   X,
   Key,
   CheckCircle2,
+  Users,
+  Feather,
 } from 'lucide-react';
 import { PrivateJournalEntry } from '@/types/sanctuary';
+import { RoomShell } from '@/components/sanctuary/RoomShell';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
+
+interface SharedEntry {
+  id: string;
+  author: 'emman' | 'lei';
+  title: string;
+  content: string;
+  moodTag?: string;
+  createdAt: string;
+}
 
 export default function PrivateJournalPage() {
-  const [currentUser, setCurrentUser] = useState<'emman' | 'lei'>('emman');
+  const [activeTab, setActiveTab] = useState<'emman' | 'lei' | 'shared'>('emman');
   const [hasPin, setHasPin] = useState<boolean>(true);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
@@ -31,15 +42,16 @@ export default function PrivateJournalPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Private journal entries
   const [entries, setEntries] = useState<PrivateJournalEntry[]>([]);
-  const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
-  const [isChangePinOpen, setIsChangePinOpen] = useState<boolean>(false);
-  const [oldPinInput, setOldPinInput] = useState<string>('');
-  const [newPinChangeInput, setNewPinChangeInput] = useState<string>('');
+  // Shared journal entries
+  const [sharedEntries, setSharedEntries] = useState<SharedEntry[]>([]);
 
+  const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newMood, setNewMood] = useState('Peaceful');
+  const [sharedAuthor, setSharedAuthor] = useState<'emman' | 'lei'>('emman');
 
   const checkUnlockStatus = async (user: 'emman' | 'lei') => {
     try {
@@ -58,16 +70,49 @@ export default function PrivateJournalPage() {
     }
   };
 
+  const fetchEntries = async (user: 'emman' | 'lei') => {
+    try {
+      const res = await fetch(`/api/journal?user=${user}`);
+      const data = await res.json();
+      if (data.entries) setEntries(data.entries);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchSharedEntries = async () => {
+    try {
+      const res = await fetch('/api/journal?type=shared');
+      const data = await res.json();
+      if (data.entries) setSharedEntries(data.entries);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    setPinInput('');
-    setConfirmPinInput('');
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    checkUnlockStatus(currentUser);
-  }, [currentUser]);
+    if (activeTab === 'shared') {
+      fetchSharedEntries();
+    } else {
+      setPinInput('');
+      setConfirmPinInput('');
+      setErrorMsg(null);
+      setSuccessMsg(null);
+      checkUnlockStatus(activeTab);
+    }
+  }, [activeTab]);
+
+  // Realtime updates for Shared Journal
+  useSanctuaryRealtime({
+    table: 'shared_journals',
+    onChange: () => {
+      if (activeTab === 'shared') fetchSharedEntries();
+    },
+  });
 
   const handleSetupPin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'shared') return;
     if (!pinInput.trim()) return;
 
     if (pinInput.trim().length < 4) {
@@ -87,7 +132,7 @@ export default function PrivateJournalPage() {
       const res = await fetch('/api/auth/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: currentUser, pin: pinInput.trim(), action: 'setup' }),
+        body: JSON.stringify({ user: activeTab, pin: pinInput.trim(), action: 'setup' }),
       });
 
       const data = await res.json();
@@ -98,7 +143,7 @@ export default function PrivateJournalPage() {
         setPinInput('');
         setConfirmPinInput('');
         setSuccessMsg(`Your personal passkey has been sealed.`);
-        fetchEntries(currentUser);
+        fetchEntries(activeTab);
       } else {
         setErrorMsg(data.error || 'Failed to seal your passkey.');
       }
@@ -109,8 +154,9 @@ export default function PrivateJournalPage() {
     }
   };
 
-  const handleUnlock = async (e: React.FormEvent) => {
+  const handleUnlockJournal = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'shared') return;
     if (!pinInput.trim()) return;
 
     setLoading(true);
@@ -120,7 +166,7 @@ export default function PrivateJournalPage() {
       const res = await fetch('/api/auth/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: currentUser, pin: pinInput.trim() }),
+        body: JSON.stringify({ user: activeTab, pin: pinInput.trim(), action: 'verify' }),
       });
 
       const data = await res.json();
@@ -128,64 +174,27 @@ export default function PrivateJournalPage() {
       if (res.ok && data.success) {
         setIsUnlocked(true);
         setPinInput('');
-        fetchEntries(currentUser);
+        fetchEntries(activeTab);
       } else {
-        setErrorMsg(data.error || 'Incorrect personal passkey.');
+        setErrorMsg(data.error || 'Invalid personal passkey.');
       }
     } catch {
-      setErrorMsg('Failed to unlock journal.');
+      setErrorMsg('Verification failed. Please retry.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChangePin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!oldPinInput.trim() || !newPinChangeInput.trim()) return;
-
-    if (newPinChangeInput.trim().length < 4) {
-      setErrorMsg('New PIN must be at least 4 digits.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg(null);
-
+  const handleLockJournal = async () => {
+    if (activeTab === 'shared') return;
     try {
-      const res = await fetch('/api/auth/journal', {
+      await fetch('/api/auth/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user: currentUser,
-          action: 'change_pin',
-          oldPin: oldPinInput.trim(),
-          pin: newPinChangeInput.trim(),
-        }),
+        body: JSON.stringify({ user: activeTab, action: 'lock' }),
       });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        setIsChangePinOpen(false);
-        setOldPinInput('');
-        setNewPinChangeInput('');
-        setSuccessMsg('Your personal passkey was successfully updated.');
-        setTimeout(() => setSuccessMsg(null), 3000);
-      } else {
-        setErrorMsg(data.error || 'Failed to update PIN.');
-      }
-    } catch {
-      setErrorMsg('Failed to update PIN.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchEntries = async (user: 'emman' | 'lei') => {
-    try {
-      const res = await fetch(`/api/journal?user=${user}`);
-      const data = await res.json();
-      if (data.entries) setEntries(data.entries);
+      setIsUnlocked(false);
+      setEntries([]);
     } catch (e) {
       console.error(e);
     }
@@ -196,22 +205,41 @@ export default function PrivateJournalPage() {
     if (!newTitle.trim() || !newContent.trim()) return;
 
     try {
-      const res = await fetch('/api/journal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user: currentUser,
-          title: newTitle.trim(),
-          content: newContent.trim(),
-          moodTag: newMood,
-        }),
-      });
-
-      if (res.ok) {
-        setIsAddOpen(false);
-        setNewTitle('');
-        setNewContent('');
-        fetchEntries(currentUser);
+      if (activeTab === 'shared') {
+        const res = await fetch('/api/journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'shared',
+            user: sharedAuthor,
+            title: newTitle.trim(),
+            content: newContent.trim(),
+            moodTag: newMood,
+          }),
+        });
+        if (res.ok) {
+          setIsAddOpen(false);
+          setNewTitle('');
+          setNewContent('');
+          fetchSharedEntries();
+        }
+      } else {
+        const res = await fetch('/api/journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: activeTab,
+            title: newTitle.trim(),
+            content: newContent.trim(),
+            moodTag: newMood,
+          }),
+        });
+        if (res.ok) {
+          setIsAddOpen(false);
+          setNewTitle('');
+          setNewContent('');
+          fetchEntries(activeTab);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -219,423 +247,415 @@ export default function PrivateJournalPage() {
   };
 
   const handleDeleteEntry = async (id: string) => {
+    if (activeTab === 'shared') return;
     if (!confirm('Are you sure you want to permanently erase this personal reflection?')) return;
     try {
-      const res = await fetch(`/api/journal?id=${id}&user=${currentUser}`, {
+      const res = await fetch(`/api/journal?id=${id}&user=${activeTab}`, {
         method: 'DELETE',
       });
-      if (res.ok) fetchEntries(currentUser);
+      if (res.ok) fetchEntries(activeTab);
     } catch (e) {
       console.error(e);
     }
   };
 
   return (
-    <RoomShell><div className="px-4 py-8 md:px-12 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-serif uppercase tracking-widest text-sanctuary-gold">
-              Room 07 &bull; Private Journal
-            </span>
-            <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-indigo-300">Strict Personal Isolation</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-serif text-white">
-            Sacred Personal Archives
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Each person creates their own private passkey. Neither the gate key nor admin powers can peer into another&rsquo;s sacred pages.
-          </p>
-        </div>
-
-        {/* Profile Switcher */}
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentUser('emman');
-              setErrorMsg(null);
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-serif tracking-wider transition-all ${
-              currentUser === 'emman'
-                ? 'bg-sanctuary-gold text-slate-950 font-semibold shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Emman&rsquo;s Journal
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentUser('lei');
-              setErrorMsg(null);
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-serif tracking-wider transition-all ${
-              currentUser === 'lei'
-                ? 'bg-sanctuary-rose text-slate-950 font-semibold shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Lei&rsquo;s Journal
-          </button>
-        </div>
-      </div>
-
-      {!isUnlocked ? (
-        !hasPin ? (
-          /* Create PIN First Time Setup Screen */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md mx-auto p-8 rounded-3xl celestial-panel border border-indigo-500/40 text-center shadow-2xl mt-8"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <Key className="w-8 h-8 text-indigo-300 animate-pulse" />
-            </div>
-
-            <h2 className="text-lg font-serif text-white mb-1">
-              Create Your Personal Passkey
-            </h2>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-              Welcome, <span className="text-sanctuary-gold-light capitalize">{currentUser}</span>. You have not set a passkey yet. Choose a private PIN (4+ digits) that only you know to seal your journal.
-            </p>
-
-            {errorMsg && (
-              <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs text-left">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSetupPin} className="space-y-4">
-              <div className="space-y-3">
-                <input
-                  type="password"
-                  required
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value)}
-                  placeholder="Choose your secret PIN (e.g. 4 digits)"
-                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
-                  autoFocus
-                />
-                <input
-                  type="password"
-                  required
-                  value={confirmPinInput}
-                  onChange={(e) => setConfirmPinInput(e.target.value)}
-                  placeholder="Confirm your secret PIN"
-                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !pinInput.trim() || !confirmPinInput.trim()}
-                className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                <span>{loading ? 'Sealing...' : 'Seal My Private Passkey'}</span>
-              </button>
-            </form>
-
-            <div className="mt-4 text-[10px] text-slate-500 tracking-wider">
-              YOUR PASSKEY IS STORED SECURELY & ONLY KNOWN TO YOU
-            </div>
-          </motion.div>
-        ) : (
-          /* Normal Unlock Screen */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md mx-auto p-8 rounded-3xl celestial-panel border border-indigo-500/30 text-center shadow-2xl mt-8"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <BookLock className="w-8 h-8 text-indigo-300 animate-pulse" />
-            </div>
-
-            <h2 className="text-lg font-serif text-white mb-1">
-              {currentUser === 'emman' ? 'Emman’s' : 'Lei’s'} Sealed Journal
-            </h2>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-              Please enter your private passkey to unseal your journal.
-            </p>
-
-            {errorMsg && (
-              <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs text-left">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUnlock} className="space-y-4">
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value)}
-                  placeholder="Enter your personal PIN"
-                  className="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 focus:border-indigo-400 text-sm text-center text-white placeholder-slate-500 tracking-widest outline-none"
-                  autoFocus
-                />
-                <KeyRound className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !pinInput.trim()}
-                className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <Unlock className="w-4 h-4" />
-                <span>{loading ? 'Unsealing...' : 'Unseal My Journal'}</span>
-              </button>
-            </form>
-
-            <div className="mt-4 text-[10px] text-slate-500 tracking-wider">
-              ZERO-KNOWLEDGE PERSONAL ISOLATION ACTIVE
-            </div>
-          </motion.div>
-        )
-      ) : (
-        /* Unlocked Journal Pages */
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30">
-            <div className="flex items-center gap-2 text-xs text-indigo-200">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>
-                Personal vault open for {currentUser === 'emman' ? 'Emman' : 'Lei'}.
+    <RoomShell>
+      <div className="px-4 py-8 md:px-12 max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-serif uppercase tracking-widest text-sanctuary-gold">
+                Room 07 &bull; Private Journal
               </span>
+              <span className="text-xs text-slate-500">•</span>
+              <span className="text-xs text-indigo-300">Personal &amp; Shared Archives</span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsChangePinOpen(true)}
-                className="text-xs text-slate-400 hover:text-indigo-300 px-3 py-1.5 rounded-xl border border-slate-800 transition-colors"
-              >
-                Change Passkey
-              </button>
+            <h1 className="text-2xl md:text-3xl font-serif text-white">
+              Sacred Reflections &amp; Shared Chronicles
+            </h1>
+            <p className="text-xs text-slate-400 mt-1 max-w-xl">
+              Private journals are strictly isolated by your individual passkey. The Shared Journal is an open space for both of you to write together.
+            </p>
+          </div>
+
+          {/* Tab Switcher: Emman / Lei / Shared */}
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setActiveTab('emman')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-serif tracking-wider transition-all cursor-pointer ${
+                activeTab === 'emman'
+                  ? 'bg-sanctuary-gold text-slate-950 font-semibold shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Emman&rsquo;s Private
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('lei')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-serif tracking-wider transition-all cursor-pointer ${
+                activeTab === 'lei'
+                  ? 'bg-sanctuary-rose text-slate-950 font-semibold shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Lei&rsquo;s Private
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('shared')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-serif tracking-wider transition-all cursor-pointer ${
+                activeTab === 'shared'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                  : 'text-indigo-300 hover:text-white'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Shared Journal</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SHARED JOURNAL VIEW */}
+        {activeTab === 'shared' ? (
+          <div>
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-indigo-900/30">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h2 className="text-lg font-serif text-white">Our Shared Chronicles</h2>
+                  <p className="text-xs text-slate-400">Joint memories, mutual reflections &amp; travels</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsAddOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold hover:bg-indigo-400 transition-all shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-serif hover:bg-indigo-500 transition-all shadow-md cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Write Reflection</span>
+                <span>Write Shared Entry</span>
               </button>
             </div>
-          </div>
 
-          {successMsg && (
-            <div className="p-3 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Entries list */}
-          <div className="space-y-4">
-            {entries.map((entry) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-6 rounded-3xl celestial-panel border border-slate-800 shadow-md relative group"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-indigo-300 font-serif">
-                      {entry.moodTag || 'Reflection'}
-                    </span>
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-sanctuary-gold" />
-                      {new Date(entry.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteEntry(entry.id)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-900 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Delete Entry"
+            {sharedEntries.length === 0 ? (
+              <div className="text-center py-16 text-slate-500">
+                <BookLock className="w-12 h-12 mx-auto mb-3 opacity-40 text-indigo-400" />
+                <p className="font-serif text-sm">No shared entries yet. Write our first shared reflection together!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {sharedEntries.map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-3xl celestial-panel border border-indigo-500/30 shadow-lg flex flex-col justify-between"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <h3 className="text-lg font-serif text-white font-medium mb-2">
-                  {entry.title}
-                </h3>
-                <p className="text-xs md:text-sm text-slate-300 leading-relaxed whitespace-pre-wrap italic">
-                  {entry.content}
-                </p>
-              </motion.div>
-            ))}
-
-            {entries.length === 0 && (
-              <div className="p-12 text-center rounded-3xl celestial-panel border border-slate-800 text-slate-400 text-xs">
-                No entries penned yet. Click &ldquo;Write Reflection&rdquo; to begin your sacred journal.
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-serif uppercase tracking-widest text-indigo-300 font-semibold">
+                          Penned by {entry.author === 'emman' ? 'Emman' : 'Lei'}
+                        </span>
+                        {entry.moodTag && (
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-serif border border-indigo-500/40 bg-indigo-950/60 text-indigo-200">
+                            {entry.moodTag}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-serif font-bold text-white mb-2">{entry.title}</h3>
+                      <p className="text-xs font-display text-slate-300 leading-relaxed whitespace-pre-wrap italic">
+                        {entry.content}
+                      </p>
+                    </div>
+                    <div className="pt-4 mt-4 border-t border-slate-800 text-[10px] text-slate-500 font-serif">
+                      Written {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Change PIN Modal */}
-      <AnimatePresence>
-        {isChangePinOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative w-full max-w-sm p-6 rounded-3xl celestial-panel border border-indigo-500/40 shadow-2xl"
-            >
-              <button
-                type="button"
-                onClick={() => setIsChangePinOpen(false)}
-                className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h3 className="font-serif text-base text-white mb-1">Change Journal Passkey</h3>
-              <p className="text-xs text-slate-400 mb-4">Update your secret personal PIN</p>
-
-              <form onSubmit={handleChangePin} className="space-y-3">
-                <input
-                  type="password"
-                  required
-                  value={oldPinInput}
-                  onChange={(e) => setOldPinInput(e.target.value)}
-                  placeholder="Current PIN"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
-                />
-                <input
-                  type="password"
-                  required
-                  value={newPinChangeInput}
-                  onChange={(e) => setNewPinChangeInput(e.target.value)}
-                  placeholder="New PIN (4+ digits)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
-                />
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsChangePinOpen(false)}
-                    className="px-3 py-1.5 rounded-xl text-xs text-slate-400"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold"
-                  >
-                    Update Passkey
-                  </button>
+        ) : (
+          /* PRIVATE JOURNAL VIEW (STRICT PIN ISOLATION) */
+          <div>
+            {!isUnlocked ? (
+              <div className="max-w-md mx-auto my-8 p-8 rounded-3xl celestial-panel border border-indigo-500/30 text-center shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <Lock className="w-7 h-7 text-indigo-300" />
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
-      {/* Add Journal Modal */}
-      <AnimatePresence>
-        {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative w-full max-w-lg p-6 rounded-3xl celestial-panel border border-indigo-500/40 shadow-2xl"
-            >
-              <button
-                type="button"
-                onClick={() => setIsAddOpen(false)}
-                className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                <h2 className="text-xl font-serif text-white mb-1">
+                  {activeTab === 'emman' ? "Emman's Private Chamber" : "Lei's Private Chamber"}
+                </h2>
+                <p className="text-xs text-slate-400 mb-6">
+                  {hasPin
+                    ? 'Enter your private passkey to access your sacred pages.'
+                    : 'Seal your private journal with a personal PIN to start writing.'}
+                </p>
 
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-indigo-950/80 border border-indigo-500/40 flex items-center justify-center">
-                  <BookLock className="w-5 h-5 text-indigo-300" />
-                </div>
-                <div>
-                  <h3 className="font-serif text-lg text-white">Write Private Reflection</h3>
-                  <p className="text-xs text-slate-400">Strictly visible to you alone</p>
-                </div>
+                {errorMsg && (
+                  <div className="p-3 mb-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                {successMsg && (
+                  <div className="p-3 mb-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
+
+                {hasPin ? (
+                  <form onSubmit={handleUnlockJournal} className="space-y-4">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      required
+                      value={pinInput}
+                      onChange={(e) => setPinInput(e.target.value)}
+                      placeholder="Enter Your Personal Passkey"
+                      className="w-full text-center tracking-[0.4em] text-lg font-serif py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-400"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading || !pinInput.trim()}
+                      className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-md"
+                    >
+                      {loading ? 'Unlocking Vault...' : 'Unlock Sacred Pages'}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSetupPin} className="space-y-4">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      required
+                      value={pinInput}
+                      onChange={(e) => setPinInput(e.target.value)}
+                      placeholder="Create 4+ Digit Personal Passkey"
+                      className="w-full text-center tracking-[0.3em] text-sm py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-400"
+                    />
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      required
+                      value={confirmPinInput}
+                      onChange={(e) => setConfirmPinInput(e.target.value)}
+                      placeholder="Confirm Your Passkey"
+                      className="w-full text-center tracking-[0.3em] text-sm py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-400"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading || !pinInput.trim()}
+                      className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-md"
+                    >
+                      {loading ? 'Sealing...' : 'Seal Private Passkey'}
+                    </button>
+                  </form>
+                )}
               </div>
-
-              <form onSubmit={handleAddEntry} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-serif text-indigo-300 mb-1">
-                    Entry Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="e.g. Thoughts on our quiet morning together"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
-                  />
+            ) : (
+              /* UNLOCKED PRIVATE ENTRIES */
+              <div>
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-indigo-900/30">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <h2 className="text-lg font-serif text-white">
+                        {activeTab === 'emman' ? 'Emman’s Private Journal' : 'Lei’s Private Journal'}
+                      </h2>
+                      <p className="text-xs text-emerald-400/80">Vault Active &bull; Zero-Knowledge Isolation</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddOpen(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-serif hover:bg-indigo-500 transition-all shadow-md cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Write Reflection</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLockJournal}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Lock</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-serif text-indigo-300 mb-1">
-                    Mood / Tag
-                  </label>
-                  <input
-                    type="text"
-                    value={newMood}
-                    onChange={(e) => setNewMood(e.target.value)}
-                    placeholder="e.g. Peaceful, Grateful, Deep in Thought"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-serif text-indigo-300 mb-1">
-                    Journal Content
-                  </label>
-                  <textarea
-                    rows={8}
-                    required
-                    value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
-                    placeholder="Write freely. Your private thoughts are safeguarded here..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-400 resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddOpen(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl bg-indigo-500 text-slate-950 font-serif text-xs font-semibold hover:bg-indigo-400 transition-all"
-                  >
-                    Save Reflection
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+                {entries.length === 0 ? (
+                  <div className="text-center py-16 text-slate-500">
+                    <Feather className="w-12 h-12 mx-auto mb-3 opacity-40 text-indigo-400" />
+                    <p className="font-serif text-sm">Your private pages are waiting for your first words.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {entries.map((entry) => (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-6 rounded-3xl celestial-panel border border-indigo-500/30 shadow-lg flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-serif uppercase tracking-widest text-indigo-300 font-semibold">
+                              Personal Entry
+                            </span>
+                            {entry.moodTag && (
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full font-serif border border-indigo-500/40 bg-indigo-950/60 text-indigo-200">
+                                {entry.moodTag}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-lg font-serif font-bold text-white mb-2">{entry.title}</h3>
+                          <p className="text-xs font-display text-slate-300 leading-relaxed whitespace-pre-wrap italic">
+                            {entry.content}
+                          </p>
+                        </div>
+                        <div className="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 font-serif">
+                          <span>Penned {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors p-1"
+                            title="Delete entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
-      </AnimatePresence>
-    </div>
+
+        {/* Write Entry Modal (Works for Private or Shared) */}
+        <AnimatePresence>
+          {isAddOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="relative w-full max-w-lg p-6 sm:p-8 rounded-3xl celestial-panel border border-indigo-500/40 shadow-2xl"
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsAddOpen(false)}
+                  className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <h3 className="text-xl font-serif text-white mb-1">
+                  {activeTab === 'shared' ? 'Record Shared Memory' : 'Pen Private Reflection'}
+                </h3>
+                <p className="text-xs text-slate-400 mb-5">
+                  {activeTab === 'shared'
+                    ? 'This entry will be visible in Our Shared Chronicles for both of you.'
+                    : 'This entry is visible ONLY to you in your private vault.'}
+                </p>
+
+                <form onSubmit={handleAddEntry} className="space-y-4">
+                  {activeTab === 'shared' && (
+                    <div>
+                      <label className="block text-xs font-serif text-indigo-300 mb-1">Author</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSharedAuthor('emman')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-serif ${
+                            sharedAuthor === 'emman'
+                              ? 'bg-sanctuary-gold text-slate-950 font-semibold'
+                              : 'bg-slate-900 text-slate-400'
+                          }`}
+                        >
+                          Emman
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSharedAuthor('lei')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-serif ${
+                            sharedAuthor === 'lei'
+                              ? 'bg-sanctuary-rose text-slate-950 font-semibold'
+                              : 'bg-slate-900 text-slate-400'
+                          }`}
+                        >
+                          Lei
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-serif text-indigo-300 mb-1">Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="Title of this reflection"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-indigo-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-serif text-indigo-300 mb-1">Mood Tag</label>
+                    <input
+                      type="text"
+                      value={newMood}
+                      onChange={(e) => setNewMood(e.target.value)}
+                      placeholder="e.g. Peaceful, Grateful, Nostalgic, Loving"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-indigo-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-serif text-indigo-300 mb-1">Reflection</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={newContent}
+                      onChange={(e) => setNewContent(e.target.value)}
+                      placeholder="Write freely from the heart..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-indigo-400 resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-serif text-xs font-semibold shadow-md cursor-pointer"
+                    >
+                      Preserve Entry
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </RoomShell>
   );
 }

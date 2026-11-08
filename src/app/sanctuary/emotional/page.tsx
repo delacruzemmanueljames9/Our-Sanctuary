@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { EmotionalCheckin } from '@/types/sanctuary';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 
 const MOODS = [
   { key: 'peaceful', label: 'Peaceful & Content', emoji: '✨', color: 'border-cyan-500/50 bg-cyan-950/40 text-cyan-200' },
@@ -57,6 +58,13 @@ export default function EmotionalSpacePage() {
   useEffect(() => {
     fetchCheckins();
   }, []);
+
+  useSanctuaryRealtime({
+    table: 'emotional_checkins',
+    onChange: () => {
+      fetchCheckins();
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

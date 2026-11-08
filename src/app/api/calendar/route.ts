@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sanctuaryStore } from '@/lib/supabase/mock-store';
+import {
+  getSanctuaryCalendarEvents,
+  addSanctuaryCalendarEvent,
+  deleteSanctuaryCalendarEvent,
+} from '@/lib/supabase/db';
 
 export async function GET() {
-  const events = sanctuaryStore.getCalendarEvents();
+  const events = await getSanctuaryCalendarEvents();
   return NextResponse.json({ events });
 }
 
@@ -12,11 +16,11 @@ export async function POST(req: NextRequest) {
     const { title, description, eventDate, isRecurringAnnually, category, createdBy } = body;
 
     if (!title || !eventDate) {
-      return NextResponse.json({ error: 'Title and event date required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Title and event date are required.' }, { status: 400 });
     }
 
-    const event = sanctuaryStore.addCalendarEvent({
-      title,
+    const event = await addSanctuaryCalendarEvent({
+      title: title.trim(),
       description: description || '',
       eventDate,
       isRecurringAnnually: Boolean(isRecurringAnnually),
@@ -26,7 +30,20 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
-    console.error('Calendar add error:', error);
-    return NextResponse.json({ error: 'Failed to add calendar milestone.' }, { status: 500 });
+    console.error('Calendar event error:', error);
+    return NextResponse.json({ error: 'Failed to record milestone.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Event ID required.' }, { status: 400 });
+
+    await deleteSanctuaryCalendarEvent(id);
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: 'Failed to delete milestone.' }, { status: 500 });
   }
 }

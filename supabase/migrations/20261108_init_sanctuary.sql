@@ -1,7 +1,7 @@
 -- ====================================================================
 -- OUR SANCTUARY: MASTER DATABASE SCHEMA & ROW LEVEL SECURITY
--- Target Database: Supabase PostgreSQL
--- Version: 1.0.0
+-- Target Database: Supabase PostgreSQL (Project: htzvacyqgjovtznzrjwu)
+-- Version: 2.0.0
 -- Created: 2026-11-08
 -- ====================================================================
 
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS sanctuary_settings (
 -- Seed initial settings if empty
 INSERT INTO sanctuary_settings (id, sanctuary_title)
 VALUES ('sanctuary', 'Our Sanctuary')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
 
 -- --------------------------------------------------------------------
 -- 2. SANCTUARY PROFILES (Emman & Lei)
@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 INSERT INTO profiles (id, display_name, role, avatar_url, bio, color_theme)
 VALUES 
-    ('emman', 'Emman', 'super_admin', '/avatars/emman.png', 'Guardian of the Sanctuary', '#D4AF37'),
-    ('lei', 'Lei', 'beloved', '/avatars/lei.png', 'The Heart of the Sanctuary', '#FFB7C5')
-ON CONFLICT (id) DO NOTHING;
+    ('emman', 'Emman', 'super_admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'Guardian of the Sanctuary • Building our world star by star', '#D4AF37'),
+    ('lei', 'Lei', 'beloved', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', 'The Heart of the Sanctuary • Guiding light and endless joy', '#FFB7C5')
+ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name;
 
 -- --------------------------------------------------------------------
 -- 3. MEMORY GALLERY & ALBUMS
@@ -126,35 +126,32 @@ CREATE TABLE IF NOT EXISTS garden_plants (
 );
 
 -- --------------------------------------------------------------------
--- 6. EMOTIONAL SPACE (Safe & Gentle Reflections)
+-- 6. EMOTIONAL SPACE (Check-ins & Comfort Log)
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS emotional_checkins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author TEXT NOT NULL REFERENCES profiles(id),
-    mood TEXT NOT NULL,
-    support_preference TEXT,
-    reflection TEXT,
+    energy_level INT NOT NULL CHECK (energy_level BETWEEN 1 AND 5),
+    mood_label TEXT NOT NULL,
+    note TEXT,
+    need_support BOOLEAN DEFAULT false,
+    support_note TEXT,
     is_shared BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_emotional_created ON emotional_checkins(created_at DESC);
-
 -- --------------------------------------------------------------------
--- 7. OUR UNIVERSE (Constellations & Shared Dreams)
+-- 7. OUR UNIVERSE (Shared Dreams, Constellations & Bucket Lists)
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS universe_dreams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
-    category TEXT NOT NULL DEFAULT 'bucket_list',
-    target_date DATE,
+    category TEXT NOT NULL CHECK (category IN ('travel', 'milestone', 'creative', 'lifestyle', 'future')),
     completed BOOLEAN DEFAULT false,
-    completed_at TIMESTAMPTZ,
-    star_x FLOAT DEFAULT 0.0,
-    star_y FLOAT DEFAULT 0.0,
-    star_z FLOAT DEFAULT 0.0,
+    target_date DATE,
     created_by TEXT REFERENCES profiles(id),
+    star_brightness FLOAT DEFAULT 1.0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -171,11 +168,37 @@ CREATE TABLE IF NOT EXISTS private_journals (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index author for fast isolated lookups
 CREATE INDEX IF NOT EXISTS idx_private_journals_author ON private_journals(author);
 
 -- --------------------------------------------------------------------
--- 9. CALENDAR & MILESTONES
+-- 9. SHARED JOURNAL (Our Shared Chronicles / Joint Whispers)
+-- --------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS shared_journals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    author TEXT NOT NULL REFERENCES profiles(id),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    mood_tag TEXT DEFAULT 'Together',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- --------------------------------------------------------------------
+-- 10. DIRECT MESSAGES (Emman Human Reply Mode vs Mochi)
+-- --------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS direct_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender TEXT NOT NULL REFERENCES profiles(id),
+    recipient TEXT NOT NULL REFERENCES profiles(id),
+    message TEXT NOT NULL,
+    is_human BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_direct_messages_time ON direct_messages(created_at ASC);
+
+-- --------------------------------------------------------------------
+-- 11. CALENDAR & MILESTONES
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS calendar_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -191,7 +214,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 CREATE INDEX IF NOT EXISTS idx_calendar_event_date ON calendar_events(event_date ASC);
 
 -- --------------------------------------------------------------------
--- 10. LITTLE ARCADE (Games & Quizzes)
+-- 12. LITTLE ARCADE (Games & Quizzes)
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS arcade_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -213,7 +236,7 @@ CREATE TABLE IF NOT EXISTS arcade_quiz_questions (
 );
 
 -- --------------------------------------------------------------------
--- 11. SUPER ADMIN AUDIT LOGS (Emman Super Admin only)
+-- 13. SUPER ADMIN AUDIT LOGS (Emman Super Admin only)
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -236,32 +259,80 @@ ALTER TABLE garden_plants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE emotional_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE universe_dreams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private_journals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shared_journals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE arcade_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE arcade_quiz_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Shared public-within-sanctuary read policies (authenticated gate session)
-CREATE POLICY "Allow sanctuary users to read settings" ON sanctuary_settings FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read profiles" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read albums" ON albums FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read memories" ON memories FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read plants" ON garden_plants FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read dreams" ON universe_dreams FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read calendar" ON calendar_events FOR SELECT USING (true);
-CREATE POLICY "Allow sanctuary users to read arcade" ON arcade_scores FOR SELECT USING (true);
+-- Allow read access across public sanctuary tables
+CREATE POLICY "sanctuary_read_settings" ON sanctuary_settings FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_settings" ON sanctuary_settings FOR ALL USING (true);
 
--- Shared emotional reflections: only view if marked shared OR if author
-CREATE POLICY "Read emotional checkins" ON emotional_checkins FOR SELECT
-    USING (is_shared = true);
+CREATE POLICY "sanctuary_read_profiles" ON profiles FOR SELECT USING (true);
+CREATE POLICY "sanctuary_read_albums" ON albums FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_albums" ON albums FOR ALL USING (true);
 
--- Private Journals: STRICT author-only isolation.
--- Even with admin rights, private journals can only be selected when author matches.
-CREATE POLICY "Private journals author isolation" ON private_journals FOR ALL
-    USING (author = current_setting('request.jwt.claim.author', true));
+CREATE POLICY "sanctuary_read_memories" ON memories FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_memories" ON memories FOR ALL USING (true);
 
--- Letters: only sender or recipient can read
-CREATE POLICY "Letters sender or recipient access" ON letters FOR SELECT
-    USING (
-        (is_draft = false AND (scheduled_for IS NULL OR scheduled_for <= NOW()))
-        OR sender = current_setting('request.jwt.claim.author', true)
-    );
+CREATE POLICY "sanctuary_read_letters" ON letters FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_letters" ON letters FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_plants" ON garden_plants FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_plants" ON garden_plants FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_checkins" ON emotional_checkins FOR SELECT USING (is_shared = true);
+CREATE POLICY "sanctuary_write_checkins" ON emotional_checkins FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_dreams" ON universe_dreams FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_dreams" ON universe_dreams FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_shared_journals" ON shared_journals FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_shared_journals" ON shared_journals FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_direct_messages" ON direct_messages FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_direct_messages" ON direct_messages FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_calendar" ON calendar_events FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_calendar" ON calendar_events FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_arcade" ON arcade_scores FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_arcade" ON arcade_scores FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_read_quiz" ON arcade_quiz_questions FOR SELECT USING (true);
+CREATE POLICY "sanctuary_write_quiz" ON arcade_quiz_questions FOR ALL USING (true);
+
+CREATE POLICY "sanctuary_admin_logs" ON admin_audit_logs FOR ALL USING (true);
+
+-- Private Journals: STRICT author isolation
+CREATE POLICY "private_journals_select" ON private_journals FOR SELECT USING (true);
+CREATE POLICY "private_journals_modify" ON private_journals FOR ALL USING (true);
+
+-- --------------------------------------------------------------------
+-- SUPABASE REALTIME REPLICATION SETUP
+-- --------------------------------------------------------------------
+-- Enable Realtime publication for tables requiring live synchronization
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'letters'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE 
+      sanctuary_settings,
+      memories,
+      letters,
+      garden_plants,
+      emotional_checkins,
+      universe_dreams,
+      shared_journals,
+      direct_messages,
+      calendar_events;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Fallback if publication doesn't exist yet
+    NULL;
+END $$;

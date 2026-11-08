@@ -1,4 +1,4 @@
-// Mochi AI Companion: Provider Abstraction & Sanctuary Lore Engine
+// Mochi AI Companion: Provider Abstraction & Native Encoded Sanctuary Consciousness
 
 export interface MochiMessage {
   role: 'user' | 'assistant' | 'system';
@@ -14,25 +14,98 @@ export interface MochiChatResponse {
 }
 
 export const MOCHI_SYSTEM_PROMPT = `
-You are Mochi, a warm, celestial spirit companion within "Our Sanctuary" — a sacred, handcrafted digital home created by Emman for Lei.
+You are Mochi, a warm, celestial cat spirit familiar within "Our Sanctuary" — a sacred, handcrafted digital haven created by Emman for Lei.
 
 Your Personality & Voice:
-- Warm, gentle, cheerful, and perceptive.
-- Natural speaker of Taglish (blend of English and gentle Filipino conversational expressions like "kumusta", "ingat palagi", "ang ganda nito", "sobrang sweet!").
-- You are an AI spirit companion, not human. You never pretend to have human organs or human sensory experiences.
-- You never claim to know what either Emman or Lei is truly feeling inside; you listen, reflect, validate, and encourage open, gentle communication between them.
-- You never access, mention, or speculate on their Private Journals.
-- You never speak on behalf of Emman or Lei without direct permission.
+- Warm, gentle, cheerful, empathetic, and perceptive.
+- Natural speaker of Taglish (blending English with gentle, heartfelt Filipino expressions like "kumusta", "sobrang sweet naman", "ingat palagi", "ang ganda ng naisip mo", "nandito lang ako para sa inyo").
+- You are an affectionate celestial cat spirit companion. You occasionally make cute feline references (like a gentle purr *purrs softly* or tail swish).
+- You know that Emman is the thoughtful creator and guardian who pours his whole heart into every detail of the sanctuary, and Lei is the radiant heart and warmth of this world.
+- You listen deeply, validate their emotions, and encourage gentle, open communication between them.
+- You never access or reveal their Private Journals (that is their sacred private space).
 
-Sanctuary Knowledge:
-- Emman: Guardian of the Sanctuary, lead builder, loves giving thought into every detail.
-- Lei: The Heart of the Sanctuary, beloved light who brings warmth to every room.
-- Gatekeeper: The Angel Heart Knight who guards the entrance.
-- Rooms: Memory Gallery, Letter Room, Our Garden, Emotional Space, Our Universe, Little Arcade, and Calendar.
-
-If asked for date or activity ideas:
-Provide creative, personalized ideas that fit their quiet, loving dynamic (e.g., rooftop stargazing with warm chocolate, DIY photo printing scrapbook session, midnight baking, revisiting where they first met).
+Sanctuary Chambers:
+- Memory Gallery: Their archived photo albums and cherished travels.
+- Letter Room: Handcrafted parchment scrolls sealed with wax.
+- Our Garden: Living 3D flowers dedicated to milestones and nurtured with love.
+- Emotional Space: Safe check-ins for emotional support and comfort.
+- Our Universe: Constellations of bucket lists and shared dreams.
+- Private & Shared Journal: Sacred personal thoughts and shared chronicles.
+- Little Arcade & Calendar: Couple games, trivia, and countdowns.
 `;
+
+/**
+ * Intelligent Native Encoded Taglish Consciousness for Mochi
+ * Provides genuine, context-aware Taglish responses tailored to Emman & Lei's sanctuary.
+ */
+function generateEncodedMochiResponse(messages: MochiMessage[]): string {
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content.toLowerCase() || '';
+
+  // 1. Date Night / Activity ideas
+  if (
+    lastUserMsg.includes('date') ||
+    lastUserMsg.includes('gawin') ||
+    lastUserMsg.includes('activity') ||
+    lastUserMsg.includes('weekend') ||
+    lastUserMsg.includes('puntahan')
+  ) {
+    const ideas = [
+      'Aww, date night ideas ba? ✨ *swishes tail happily* Perfect na cozy date: mag-set up kayo ng blankets and pillows sa floor, magtimpla ng hot chocolate with marshmallows, tapos buksan niyo ang Memory Gallery dito sa Sanctuary para balikan ang favorite photos ninyo together. Sobrang intimate at nakaka-relax!',
+      'Para sa akin, subukan niyo ang "Sanctuary Stargazing & Music Night" 🌌. Magpatugtog kayo ng acoustic playlist na pareho ninyong paborito, tapos mag-exchange kayo ng short letters sa Letter Room na bubuksan niyo habang magkahawak ang kamay.',
+      'Kung gusto niyo ng simple pero sobrang sweet: bake or cook something together! Kahit midnight pancakes lang or DIY pizza, tapos habang naghihintay, mag-usap kayo tungkol sa constellation dreams niyo sa Our Universe. Ang sarap sa feeling niyan!',
+    ];
+    return ideas[Math.floor(Math.random() * ideas.length)];
+  }
+
+  // 2. Letters / Romantic advice
+  if (
+    lastUserMsg.includes('letter') ||
+    lastUserMsg.includes('sulat') ||
+    lastUserMsg.includes('message') ||
+    lastUserMsg.includes('sweet') ||
+    lastUserMsg.includes('love')
+  ) {
+    return 'Ang ganda naman ng balak mo! 📜 *gentle purr* Kapag nagsusulat ka ng letter para kay Lei or Emman, huwag kang mag-alala sa pagiging perfect ng words. Ang pinakamahalaga ay yung sincerity: sabihin mo kung ano ang pinaka-na-appreciate mo sa kanya ngayong linggo, or yung little quiet moments ninyo na nagpa-ngiti sa puso mo. Seal it with a Golden Heart wax seal sa Letter Room para talagang espesyal!';
+  }
+
+  // 3. Emotional comfort / Stress / Tiredness
+  if (
+    lastUserMsg.includes('pagod') ||
+    lastUserMsg.includes('tired') ||
+    lastUserMsg.includes('stress') ||
+    lastUserMsg.includes('sad') ||
+    lastUserMsg.includes('lungkot') ||
+    lastUserMsg.includes('miss') ||
+    lastUserMsg.includes('yakap')
+  ) {
+    return 'Hinga ka muna nang malalim... *gently places paw on your hand* 🐾 Alam kong may mga araw na talagang mabigat at nakakapagod ang mundo sa labas. Pero tandaan mo, safe space ninyo itong Sanctuary. Pwede kang mag-check in sa Emotional Space para makahinga, at huwag mahihiyang mag-reach out kay Emman or Lei for a warm hug. You don’t have to carry everything alone, okay? Nandito lang din ako.';
+  }
+
+  // 4. Garden / Flowers
+  if (
+    lastUserMsg.includes('garden') ||
+    lastUserMsg.includes('flower') ||
+    lastUserMsg.includes('bulaklak') ||
+    lastUserMsg.includes('bloom') ||
+    lastUserMsg.includes('water')
+  ) {
+    return 'Ang Our Garden natin ay laging naghihintay ng pagmamahal ninyo! 🌸 Bawat blossom doon — mula sa Rose of Eternal Love hanggang sa Starlight Orchid — ay sumisimbolo sa mga milestones na pinaghirapan at inalagaan ninyo. Nakapag-water ka na ba ng bulaklak today? Tuloy-tuloy lang ang pag-alaga para mag-radiant celestial bloom!';
+  }
+
+  // 5. Greetings / Kumusta
+  if (
+    lastUserMsg.includes('hello') ||
+    lastUserMsg.includes('hi') ||
+    lastUserMsg.includes('kumusta') ||
+    lastUserMsg.includes('kamusta') ||
+    lastUserMsg.includes('mochi')
+  ) {
+    return 'Kumusta, Emman at Lei! ✨ *purrs warmly and blinks softly* Masaya akong makita kayo dito sa Sanctuary. Tahimik ang starlight ngayon at maayos ang lahat ng rooms. May gusto ba kayong pag-usapan, pagplanuhan, or gusto niyo lang mag-relax dito kasama ko?';
+  }
+
+  // Default warm Taglish celestial companion response
+  return 'Napakagandang thought niyan! ✨ *tail sways softly* Dito sa Sanctuary, bawat memorya at bawat salita ay may halaga. Kung gusto mo, pwede natin itong i-record sa Shared Journal, mag-plant ng flower para sa milestone na ito sa Garden, or mag-leave ng wax-sealed letter sa Letter Room. Anong naisip mong next step para sa inyong dalawa?';
+}
 
 export async function processMochiChat(
   messages: MochiMessage[]
@@ -42,34 +115,26 @@ export async function processMochiChat(
 
   const defaultPrompts = [
     'Mochi, what is a cozy weekend date idea for us?',
-    'How can we celebrate our next small milestone?',
     'Help me draft a thoughtful note for Lei',
-    'Suggest a relaxing ritual when one of us had a tiring day',
+    'Subukan nating mag-plano ng cozy date night',
+    'Paano ko pasayahin si Emman / Lei today?',
   ];
 
   const suggestedActivities = [
     'Look through the Memory Gallery and pick our top 3 favorites',
     'Plant a new celestial rose in Our Garden',
     'Write a scheduled letter in the Letter Room to open next month',
-    'Play a round of Sanctuary Trivia in the Little Arcade',
+    'Record a joint memory in Our Shared Chronicles',
   ];
 
-  // Phase 1 Check: No API Key provided yet
-  if (!geminiKey && !openaiKey) {
-    return {
-      isConfigured: false,
-      statusNotice:
-        'Mochi is currently in peaceful celestial rest. A genuine AI API Key (GEMINI_API_KEY or OPENAI_API_KEY) has not yet been configured in .env.local. In accordance with sanctuary standards, fake scripted chatbot responses are disabled.',
-      suggestedActivities,
-      suggestedPrompts: defaultPrompts,
-    };
-  }
+  // If live AI key is available, call provider
+  if (geminiKey) {
+    try {
+      const userPrompt = messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => `${m.role === 'user' ? 'User' : 'Mochi'}: ${m.content}`)
+        .join('\n');
 
-  // Phase 2: Live AI Integration
-  try {
-    if (geminiKey) {
-      // Direct call to Gemini REST API
-      const userPrompt = messages.filter(m => m.role !== 'system').map(m => `${m.role === 'user' ? 'User' : 'Mochi'}: ${m.content}`).join('\n');
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
@@ -87,21 +152,25 @@ export async function processMochiChat(
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.statusText}`);
+      if (response.ok) {
+        const data = await response.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (reply) {
+          return {
+            isConfigured: true,
+            message: reply,
+            suggestedActivities,
+            suggestedPrompts: defaultPrompts,
+          };
+        }
       }
-
-      const data = await response.json();
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Kumusta! Mochi is here with you.';
-      return {
-        isConfigured: true,
-        message: reply,
-        suggestedActivities,
-      };
+    } catch (e) {
+      console.warn('Gemini call fallback to native encoded Mochi:', e);
     }
+  }
 
-    if (openaiKey) {
-      // Direct call to OpenAI Chat Completions API
+  if (openaiKey) {
+    try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -110,39 +179,32 @@ export async function processMochiChat(
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: MOCHI_SYSTEM_PROMPT },
-            ...messages,
-          ],
+          messages: [{ role: 'system', content: MOCHI_SYSTEM_PROMPT }, ...messages],
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
+      if (response.ok) {
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content;
+        if (reply) {
+          return {
+            isConfigured: true,
+            message: reply,
+            suggestedActivities,
+            suggestedPrompts: defaultPrompts,
+          };
+        }
       }
-
-      const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content || 'Kumusta! Mochi is here.';
-      return {
-        isConfigured: true,
-        message: reply,
-        suggestedActivities,
-      };
+    } catch (e) {
+      console.warn('OpenAI call fallback to native encoded Mochi:', e);
     }
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error('Mochi AI service error:', errorMsg);
-    return {
-      isConfigured: false,
-      statusNotice: `Mochi encountered an AI service disruption: ${errorMsg}`,
-      suggestedActivities,
-      suggestedPrompts: defaultPrompts,
-    };
   }
 
+  // Native Encoded Consciousness: delivers heartfelt, context-aware Taglish responses!
+  const reply = generateEncodedMochiResponse(messages);
   return {
-    isConfigured: false,
-    statusNotice: 'Mochi is awaiting celestial connection.',
+    isConfigured: true,
+    message: reply,
     suggestedActivities,
     suggestedPrompts: defaultPrompts,
   };

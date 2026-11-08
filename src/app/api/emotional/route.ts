@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sanctuaryStore } from '@/lib/supabase/mock-store';
+import { getSanctuaryCheckins, addSanctuaryCheckin } from '@/lib/supabase/db';
 
 export async function GET() {
-  const checkins = sanctuaryStore.getEmotionalCheckins();
+  const checkins = await getSanctuaryCheckins();
   return NextResponse.json({ checkins });
 }
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Author and mood required.' }, { status: 400 });
     }
 
-    const checkin = sanctuaryStore.addEmotionalCheckin({
+    const checkin = await addSanctuaryCheckin({
       author: author === 'lei' ? 'lei' : 'emman',
       mood,
       supportPreference: supportPreference || 'listen',

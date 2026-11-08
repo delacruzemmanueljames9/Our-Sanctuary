@@ -17,6 +17,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { MemoryItem, Album } from '@/types/sanctuary';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 
 export default function MemoryGalleryPage() {
   const [memories, setMemories] = useState<MemoryItem[]>([]);
@@ -54,6 +55,13 @@ export default function MemoryGalleryPage() {
   useEffect(() => {
     fetchGallery();
   }, []);
+
+  useSanctuaryRealtime({
+    table: 'memories',
+    onChange: () => {
+      fetchGallery();
+    },
+  });
 
   const handleAddMemory = async (e: React.FormEvent) => {
     e.preventDefault();

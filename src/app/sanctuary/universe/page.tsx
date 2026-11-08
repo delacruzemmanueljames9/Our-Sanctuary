@@ -17,6 +17,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { UniverseDream } from '@/types/sanctuary';
+import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 
 export default function OurUniversePage() {
   const [dreams, setDreams] = useState<UniverseDream[]>([]);
@@ -44,6 +45,13 @@ export default function OurUniversePage() {
   useEffect(() => {
     fetchDreams();
   }, []);
+
+  useSanctuaryRealtime({
+    table: 'universe_dreams',
+    onChange: () => {
+      fetchDreams();
+    },
+  });
 
   const handleToggleCompleted = async (id: string) => {
     try {
