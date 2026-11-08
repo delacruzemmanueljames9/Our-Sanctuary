@@ -1,0 +1,40 @@
+name: CI — Build Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Type Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        env:
+          # Provide dummy values so the build doesn't fail on missing env vars.
+          # Real values are configured as Vercel Environment Variables — not here.
+          SANCTUARY_GATE_PIN: "000000"
+          EMMAN_ADMIN_SECRET: "000000"
+          SANCTUARY_SESSION_SECRET: "ci_placeholder_secret_not_used_in_production"
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder"
+          SUPABASE_SERVICE_ROLE_KEY: "placeholder"
+        run: npm run build
