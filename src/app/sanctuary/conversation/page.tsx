@@ -143,6 +143,17 @@ export default function ConversationRoomPage() {
     },
   });
 
+  // Fallback polling — runs every 3s when Supabase Realtime is not live.
+  // Ensures new messages from Emman always appear without manual refresh,
+  // even when using the in-memory data layer or if realtime drops.
+  useEffect(() => {
+    if (realtimeStatus === 'connected') return; // realtime handles it, no poll needed
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [realtimeStatus, fetchMessages]);
+
   const sendMessage = async (textToSend: string) => {
     const text = textToSend.trim();
     if (!text || isSending) return;

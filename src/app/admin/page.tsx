@@ -113,6 +113,15 @@ export default function AdminControlCenter() {
     },
   });
 
+  // Fallback polling every 3s when Supabase Realtime is not live.
+  // Ensures Emman sees Lei's new messages immediately without manual refresh.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isAdmin) fetchDirectMessages();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
   useEffect(() => {
     if (activeTab === 'messages') {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
