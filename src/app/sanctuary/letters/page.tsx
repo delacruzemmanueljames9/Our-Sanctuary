@@ -7,7 +7,6 @@ import {
   PenTool,
   Clock,
   Send,
-  Heart,
   Sparkles,
   Inbox,
   SendHorizonal,
@@ -15,6 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { Letter } from '@/types/sanctuary';
+import { RoomShell } from '@/components/sanctuary/RoomShell';
+import { ParchmentScroll } from '@/components/sanctuary/ParchmentScroll';
 
 export default function LetterRoomPage() {
   const [letters, setLetters] = useState<Letter[]>([]);
@@ -97,7 +98,7 @@ export default function LetterRoomPage() {
   };
 
   return (
-    <div className="relative min-h-screen px-4 py-8 md:px-12 max-w-6xl mx-auto">
+    <RoomShell><div className="px-4 py-8 md:px-12 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -328,52 +329,34 @@ export default function LetterRoomPage() {
         </div>
       )}
 
-      {/* Letter Reading Modal */}
-      <AnimatePresence>
-        {selectedLetter && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative w-full max-w-2xl max-h-[85vh] p-8 md:p-12 rounded-3xl parchment-panel shadow-2xl flex flex-col overflow-y-auto"
-            >
-              <button
-                type="button"
-                onClick={() => setSelectedLetter(null)}
-                className="absolute top-5 right-5 p-1.5 rounded-full bg-amber-900/10 text-amber-950 hover:bg-amber-900/20 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="mb-6 pb-4 border-b border-amber-900/20">
-                <span className="text-[11px] font-serif uppercase tracking-widest text-amber-900 block mb-1">
-                  Letter from {selectedLetter.sender === 'emman' ? 'Emman' : 'Lei'} to {selectedLetter.recipient === 'emman' ? 'Emman' : 'Lei'}
-                </span>
-                <h2 className="text-2xl font-serif text-amber-950 font-bold">
-                  {selectedLetter.title}
-                </h2>
-                <span className="text-xs text-amber-800/80 font-serif mt-1 block">
-                  Penned on {new Date(selectedLetter.createdAt).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-
-              <div className="flex-1 text-sm md:text-base font-display text-amber-950 leading-relaxed whitespace-pre-wrap italic">
-                {selectedLetter.content}
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-amber-900/20 flex items-center justify-between text-xs text-amber-900 font-serif">
-                <span>Sanctuary Seal of Harmony</span>
-                <span className="font-semibold uppercase tracking-wider text-amber-950">Eternal Bond</span>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Animated Parchment Scroll — Letter Reading */}
+      {selectedLetter && (() => {
+        const sealMap: Record<string, { label: string; color: string }> = {
+          golden_heart: { label: 'Golden Heart Seal', color: 'text-amber-300 border-amber-500/40 bg-amber-950/40' },
+          celestial_rose: { label: 'Celestial Rose Seal', color: 'text-rose-300 border-rose-500/40 bg-rose-950/40' },
+          starlight: { label: 'Starlight Seal', color: 'text-cyan-300 border-cyan-500/40 bg-cyan-950/40' },
+          angel_wing: { label: 'Angel Wing Seal', color: 'text-slate-300 border-slate-500/40 bg-slate-900/60' },
+        };
+        const seal = sealMap[selectedLetter.waxSeal] ?? sealMap['golden_heart'];
+        return (
+          <ParchmentScroll
+            isOpen={true}
+            onClose={() => setSelectedLetter(null)}
+            title={selectedLetter.title}
+            sender={selectedLetter.sender === 'emman' ? 'Emman' : 'Lei'}
+            recipient={selectedLetter.recipient === 'emman' ? 'Emman' : 'Lei'}
+            date={new Date(selectedLetter.createdAt).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+            content={selectedLetter.content}
+            sealLabel={seal.label}
+            sealColor={seal.color}
+          />
+        );
+      })()}
     </div>
+    </RoomShell>
   );
 }

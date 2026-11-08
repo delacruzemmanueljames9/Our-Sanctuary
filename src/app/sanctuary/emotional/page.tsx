@@ -1,5 +1,7 @@
 'use client';
 
+import { RoomShell } from '@/components/sanctuary/RoomShell';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -87,7 +89,7 @@ export default function EmotionalSpacePage() {
   };
 
   return (
-    <div className="relative min-h-screen px-4 py-8 md:px-12 max-w-5xl mx-auto">
+    <RoomShell><div className="px-4 py-8 md:px-12 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
@@ -303,5 +305,6 @@ export default function EmotionalSpacePage() {
         </div>
       </div>
     </div>
+    </RoomShell>
   );
 }

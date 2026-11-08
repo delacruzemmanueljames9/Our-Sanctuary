@@ -1,5 +1,7 @@
 'use client';
 
+import { RoomShell } from '@/components/sanctuary/RoomShell';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -229,7 +231,7 @@ export default function PrivateJournalPage() {
   };
 
   return (
-    <div className="relative min-h-screen px-4 py-8 md:px-12 max-w-5xl mx-auto">
+    <RoomShell><div className="px-4 py-8 md:px-12 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -634,5 +636,6 @@ export default function PrivateJournalPage() {
         )}
       </AnimatePresence>
     </div>
+    </RoomShell>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CanvasContainer } from '@/components/3d/CanvasContainer';
 import { SanctuaryIsland } from '@/components/3d/SanctuaryIsland';
@@ -9,14 +9,7 @@ import {
   Compass,
   Sparkles,
   ArrowRight,
-  Image as ImageIcon,
-  Scroll,
-  Flower2,
-  HeartHandshake,
-  BookLock,
-  Gamepad2,
-  Calendar,
-  X,
+  ArrowLeft,
   Bot,
   ShieldAlert,
 } from 'lucide-react';
@@ -26,105 +19,134 @@ import { AdminAuthModal } from '@/components/admin/AdminAuthModal';
 const SANCTUARY_ROOMS_CATALOG = [
   {
     key: 'gallery',
+    emoji: '📸',
     title: 'Memory Gallery',
-    tagline: 'Archived photos, albums, and cherished adventures',
+    tagline: 'Photos, albums & cherished adventures',
     path: '/sanctuary/gallery',
-    icon: ImageIcon,
-    color: 'text-sky-400',
-    borderColor: 'border-sky-500/30 hover:border-sky-500/60',
-    bgColor: 'bg-sky-950/20',
+    borderColor: 'border-sky-500/30 hover:border-sky-400/70',
+    bgColor: 'bg-sky-950/20 hover:bg-sky-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(56,189,248,0.18)]',
+    textColor: 'group-hover:text-sky-300',
   },
   {
     key: 'letters',
+    emoji: '📜',
     title: 'Letter Room',
-    tagline: 'Handcrafted parchment, wax seals, and time capsules',
+    tagline: 'Parchment scrolls sealed with wax',
     path: '/sanctuary/letters',
-    icon: Scroll,
-    color: 'text-rose-300',
-    borderColor: 'border-rose-500/30 hover:border-rose-500/60',
-    bgColor: 'bg-rose-950/20',
+    borderColor: 'border-rose-500/30 hover:border-rose-400/70',
+    bgColor: 'bg-rose-950/20 hover:bg-rose-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(251,113,133,0.18)]',
+    textColor: 'group-hover:text-rose-300',
   },
   {
     key: 'garden',
+    emoji: '🌸',
     title: 'Our Garden',
-    tagline: 'Living flora dedicated to our milestones and care',
+    tagline: 'Living flowers for every milestone',
     path: '/sanctuary/garden',
-    icon: Flower2,
-    color: 'text-emerald-400',
-    borderColor: 'border-emerald-500/30 hover:border-emerald-500/60',
-    bgColor: 'bg-emerald-950/20',
+    borderColor: 'border-emerald-500/30 hover:border-emerald-400/70',
+    bgColor: 'bg-emerald-950/20 hover:bg-emerald-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(52,211,153,0.18)]',
+    textColor: 'group-hover:text-emerald-300',
   },
   {
     key: 'emotional',
+    emoji: '🫂',
     title: 'Emotional Space',
-    tagline: 'Safe check-ins, mood reflections, and gentle comfort',
+    tagline: 'Safe mood check-ins & gentle comfort',
     path: '/sanctuary/emotional',
-    icon: HeartHandshake,
-    color: 'text-pink-400',
-    borderColor: 'border-pink-500/30 hover:border-pink-500/60',
-    bgColor: 'bg-pink-950/20',
+    borderColor: 'border-pink-500/30 hover:border-pink-400/70',
+    bgColor: 'bg-pink-950/20 hover:bg-pink-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(244,114,182,0.18)]',
+    textColor: 'group-hover:text-pink-300',
   },
   {
     key: 'universe',
+    emoji: '✨',
     title: 'Our Universe',
-    tagline: 'Constellations of shared dreams, bucket lists & voyages',
+    tagline: 'Shared dreams, bucket lists & voyages',
     path: '/sanctuary/universe',
-    icon: Compass,
-    color: 'text-cyan-300',
-    borderColor: 'border-cyan-500/30 hover:border-cyan-500/60',
-    bgColor: 'bg-cyan-950/20',
+    borderColor: 'border-cyan-500/30 hover:border-cyan-400/70',
+    bgColor: 'bg-cyan-950/20 hover:bg-cyan-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(103,232,249,0.18)]',
+    textColor: 'group-hover:text-cyan-300',
   },
   {
     key: 'journal',
+    emoji: '📔',
     title: 'Private Journal',
-    tagline: 'Strict zero-knowledge personal passkeys for each soul',
+    tagline: 'Passkey-protected personal sanctuary diary',
     path: '/sanctuary/journal',
-    icon: BookLock,
-    color: 'text-indigo-300',
-    borderColor: 'border-indigo-500/30 hover:border-indigo-500/60',
-    bgColor: 'bg-indigo-950/20',
+    borderColor: 'border-indigo-500/30 hover:border-indigo-400/70',
+    bgColor: 'bg-indigo-950/20 hover:bg-indigo-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(129,140,248,0.18)]',
+    textColor: 'group-hover:text-indigo-300',
   },
   {
     key: 'arcade',
+    emoji: '🎮',
     title: 'Little Arcade',
-    tagline: 'Couple trivia quizzes, scoring & date night generators',
+    tagline: 'Couple trivia, quizzes & date generators',
     path: '/sanctuary/arcade',
-    icon: Gamepad2,
-    color: 'text-amber-300',
-    borderColor: 'border-amber-500/30 hover:border-amber-500/60',
-    bgColor: 'bg-amber-950/20',
+    borderColor: 'border-amber-500/30 hover:border-amber-400/70',
+    bgColor: 'bg-amber-950/20 hover:bg-amber-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(252,211,77,0.18)]',
+    textColor: 'group-hover:text-amber-300',
   },
   {
     key: 'calendar',
+    emoji: '📅',
     title: 'Calendar',
-    tagline: 'Milestones, countdowns, and recurring anniversaries',
+    tagline: 'Milestones, countdowns & anniversaries',
     path: '/sanctuary/calendar',
-    icon: Calendar,
-    color: 'text-purple-300',
-    borderColor: 'border-purple-500/30 hover:border-purple-500/60',
-    bgColor: 'bg-purple-950/20',
+    borderColor: 'border-purple-500/30 hover:border-purple-400/70',
+    bgColor: 'bg-purple-950/20 hover:bg-purple-900/30',
+    glowColor: 'hover:shadow-[0_0_22px_rgba(167,139,250,0.18)]',
+    textColor: 'group-hover:text-purple-300',
   },
 ];
 
-export default function MainSanctuaryPage() {
+function SanctuaryPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showRoomSelection, setShowRoomSelection] = useState<boolean>(false);
   const [isMochiOpen, setIsMochiOpen] = useState<boolean>(false);
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState<boolean>(false);
 
+  // Auto-open Room Selection when arriving back from a room (?explore=true)
+  useEffect(() => {
+    if (searchParams.get('explore') === 'true') {
+      setShowRoomSelection(true);
+    }
+  }, [searchParams]);
+
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none bg-[#05070f]">
-      {/* 3D Floating Sanctuary Island (Existing Environment Unchanged) */}
+      {/* 3D Floating Sanctuary Island */}
       <div className="absolute inset-0 w-full h-full pointer-events-auto">
         <CanvasContainer camera={{ position: [0, 8, 16], fov: 42 }}>
           <SanctuaryIsland />
         </CanvasContainer>
       </div>
 
-      {/* Atmospheric Overlays */}
+      {/* Atmospheric overlay */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#05070f]/35 via-transparent to-[#05070f]/35" />
 
-      {/* Simplified Main Sanctuary Welcome Screen (No bottom nav, no widgets, no cards) */}
+      {/* Global Admin Button — always top-right */}
+      <div className="absolute top-4 right-4 z-50 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => setIsAdminAuthOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-slate-700/50 text-slate-500 hover:text-sanctuary-gold hover:border-sanctuary-gold/40 backdrop-blur-sm transition-all cursor-pointer"
+          title="Admin Control Center (Emman Only)"
+        >
+          <ShieldAlert className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-serif hidden sm:inline">Admin</span>
+        </button>
+      </div>
+
+      {/* Welcome Screen */}
       <AnimatePresence>
         {!showRoomSelection && (
           <motion.div
@@ -134,7 +156,6 @@ export default function MainSanctuaryPage() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 pointer-events-none"
           >
-            {/* Short, Sweet, Personal Welcome Message */}
             <motion.h1
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -153,7 +174,6 @@ export default function MainSanctuaryPage() {
               A peaceful celestial haven handcrafted for our love, cherished memories, and future dreams.
             </motion.p>
 
-            {/* One Elegant Centered Button: "Explore Our Sanctuary" */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -174,96 +194,77 @@ export default function MainSanctuaryPage() {
         )}
       </AnimatePresence>
 
-      {/* Room Selection Interface (Accessible ONLY after clicking the welcome button) */}
+      {/* Room Selection Interface */}
       <AnimatePresence>
         {showRoomSelection && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/60 backdrop-blur-md overflow-y-auto">
+          <div className="absolute inset-0 z-30 flex items-center justify-center p-4 sm:p-6 bg-black/65 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="relative w-full max-w-4xl p-6 sm:p-8 rounded-3xl celestial-panel border border-sanctuary-gold/40 shadow-2xl my-auto"
+              className="relative w-full max-w-3xl p-5 sm:p-7 rounded-3xl celestial-panel border border-sanctuary-gold/40 shadow-2xl my-auto"
             >
-              {/* Header & Close Button */}
-              <div className="flex items-center justify-between pb-4 mb-6 border-b border-sanctuary-gold/20">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-sanctuary-gold/15 border border-sanctuary-gold/40 flex items-center justify-center shadow-celestial-sm">
-                    <Compass className="w-5 h-5 text-sanctuary-gold" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-serif tracking-widest text-sanctuary-gold-light uppercase">
-                      Sanctuary Room Selection
-                    </h2>
-                    <p className="text-[11px] text-slate-400">
-                      Choose a chamber to enter
-                    </p>
-                  </div>
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-sanctuary-gold/20">
+                <div>
+                  <h2 className="text-base sm:text-lg font-serif tracking-widest text-sanctuary-gold-light uppercase">
+                    Our Sanctuary
+                  </h2>
+                  <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">
+                    Choose a chamber to enter
+                  </p>
                 </div>
-
                 <button
                   type="button"
                   onClick={() => setShowRoomSelection(false)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700/60 text-xs text-slate-300 hover:text-sanctuary-gold hover:border-sanctuary-gold/40 transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
-                  <span className="hidden sm:inline">Return to Island</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline font-serif">Return to Island</span>
                 </button>
               </div>
 
-              {/* Grid of All Sanctuary Rooms */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-                {SANCTUARY_ROOMS_CATALOG.map((room) => {
-                  const Icon = room.icon;
-                  return (
-                    <button
-                      key={room.key}
-                      type="button"
-                      onClick={() => router.push(room.path)}
-                      className={`p-4 rounded-2xl border ${room.borderColor} ${room.bgColor} text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 flex flex-col justify-between h-36 group cursor-pointer shadow-sm`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="w-9 h-9 rounded-xl bg-slate-900/80 border border-slate-700/60 flex items-center justify-center group-hover:border-sanctuary-gold/50 transition-colors">
-                          <Icon className={`w-4 h-4 ${room.color} group-hover:scale-110 transition-transform`} />
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-sanctuary-gold group-hover:translate-x-1 transition-all" />
-                      </div>
-
-                      <div>
-                        <h3 className="font-serif text-sm text-white font-medium group-hover:text-sanctuary-gold-light transition-colors">
-                          {room.title}
-                        </h3>
-                        <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                          {room.tagline}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
+              {/* Room Grid — emoji + title + description */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                {SANCTUARY_ROOMS_CATALOG.map((room, idx) => (
+                  <motion.button
+                    key={room.key}
+                    type="button"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: idx * 0.04 }}
+                    onClick={() => router.push(room.path)}
+                    className={`p-3.5 rounded-2xl border ${room.borderColor} ${room.bgColor} ${room.glowColor} text-center transition-all duration-200 hover:scale-[1.04] active:scale-95 flex flex-col items-center gap-2 group cursor-pointer shadow-sm`}
+                  >
+                    <span className="text-2xl leading-none group-hover:scale-110 transition-transform duration-200 select-none">
+                      {room.emoji}
+                    </span>
+                    <div>
+                      <h3 className={`font-serif text-[11px] font-semibold text-white ${room.textColor} transition-colors leading-tight`}>
+                        {room.title}
+                      </h3>
+                      <p className="text-[9px] text-slate-500 mt-0.5 leading-tight line-clamp-2">
+                        {room.tagline}
+                      </p>
+                    </div>
+                  </motion.button>
+                ))}
               </div>
 
-              {/* Bottom Quick Triggers: Mochi AI & Super Admin */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
-                {/* Mochi AI Familiar */}
+              {/* Footer — Mochi AI + tagline */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">
                 <button
                   type="button"
                   onClick={() => setIsMochiOpen(true)}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/40 hover:text-white transition-all cursor-pointer shadow-sm"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 text-xs hover:bg-cyan-900/40 hover:text-white transition-all cursor-pointer shadow-sm"
                 >
                   <Bot className="w-4 h-4" />
                   <span className="font-serif tracking-wider">Mochi AI Companion</span>
                 </button>
-
-                {/* Super Admin Control Center (Emman Only) */}
-                <button
-                  type="button"
-                  onClick={() => setIsAdminAuthOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-500 hover:text-sanctuary-gold hover:bg-slate-900/60 transition-colors cursor-pointer"
-                  title="Admin Control Center (Emman Only)"
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  <span className="text-[11px] font-serif">Admin Control</span>
-                </button>
+                <p className="text-[10px] text-slate-600 font-serif italic hidden sm:block">
+                  Emman &amp; Lei&apos;s Celestial World
+                </p>
               </div>
             </motion.div>
           </div>
@@ -271,16 +272,17 @@ export default function MainSanctuaryPage() {
       </AnimatePresence>
 
       {/* Mochi AI Companion Modal */}
-      <MochiChatModal
-        isOpen={isMochiOpen}
-        onClose={() => setIsMochiOpen(false)}
-      />
-
-      {/* Admin Authentication Modal (Emman Super Admin only) */}
-      <AdminAuthModal
-        isOpen={isAdminAuthOpen}
-        onClose={() => setIsAdminAuthOpen(false)}
-      />
+      <MochiChatModal isOpen={isMochiOpen} onClose={() => setIsMochiOpen(false)} />
+      {/* Admin Authentication Modal */}
+      <AdminAuthModal isOpen={isAdminAuthOpen} onClose={() => setIsAdminAuthOpen(false)} />
     </div>
+  );
+}
+
+export default function MainSanctuaryPage() {
+  return (
+    <Suspense fallback={<div className="w-screen h-screen bg-[#05070f]" />}>
+      <SanctuaryPageInner />
+    </Suspense>
   );
 }
