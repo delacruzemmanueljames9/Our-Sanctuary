@@ -1,5 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDirectMessages, sendDirectMessage, clearDirectMessages } from '@/lib/supabase/db';
+import { getServiceSupabase } from '@/lib/supabase/server';
+
+async function broadcastEvent(event: string, payload: any) {
+  const supabase = getServiceSupabase();
+  if (!supabase) return;
+  try {
+    const channel = supabase.channel(`sanctuary-chat-srv-${Date.now()}`);
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        try { supabase.removeChannel(channel); } catch {}
+        resolve();
+      }, 1000);
+
+      channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          try {
+            await channel.send({ type: 'broadcast', event, payload });
+          } catch {}
+          clearTimeout(timeout);
+          try { supabase.removeChannel(channel); } catch {}
+          resolve();
+        }
+      });
+    });
+  } catch (e) {
+    console.warn('Server broadcast failed:', e);
+  }
+}
 
 export async function GET() {
   const messages = await getDirectMessages();
@@ -22,6 +50,9 @@ export async function POST(req: NextRequest) {
       isHuman: typeof isHuman === 'boolean' ? isHuman : true,
     });
 
+    // Broadcast to WebSocket subscribers asynchronously
+    broadcastEvent('new-message', created).catch(() => {});
+
     return NextResponse.json({ success: true, message: created });
   } catch (error) {
     console.error('Direct message error:', error);
@@ -32,6 +63,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   try {
     await clearDirectMessages();
+    broadcastEvent('clear-conversation', {}).catch(() => {});
     return NextResponse.json({ success: true, message: 'Conversation deleted successfully.' });
   } catch (error) {
     console.error('Clear direct messages error:', error);

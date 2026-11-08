@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { SanctuarySettings, AdminAuditLog, MemoryItem, Letter, GardenPlant, UniverseDream, CalendarEvent } from '@/types/sanctuary';
 import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
+import { useConversationChat } from '@/hooks/useConversationChat';
 
 interface DirectMessageItem {
   id: string;
@@ -51,10 +52,16 @@ export default function AdminControlCenter() {
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Direct Messages with Lei State
-  const [directMessages, setDirectMessages] = useState<DirectMessageItem[]>([]);
+  // Direct Messages with Lei State (backed by persistent cloud storage & realtime broadcast)
+  const {
+    messages: directMessages,
+    isSending: sendingReply,
+    sendMessage: sendEmmanMessage,
+    clearConversation: clearEmmanConversation,
+    connectionStatus: chatConnectionStatus,
+  } = useConversationChat({ userRole: 'emman' });
+
   const [replyText, setReplyText] = useState('');
-  const [sendingReply, setSendingReply] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 
   // Room Content Management State
@@ -88,39 +95,12 @@ export default function AdminControlCenter() {
           setIsAdmin(true);
           fetchAdminData();
           fetchRoomData();
-          fetchDirectMessages();
         } else {
           setIsAdmin(false);
         }
       })
       .catch(() => setIsAdmin(false));
   }, []);
-
-  const fetchDirectMessages = async () => {
-    try {
-      const res = await fetch('/api/messages');
-      const data = await res.json();
-      if (data.messages) setDirectMessages(data.messages);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useSanctuaryRealtime({
-    table: 'direct_messages',
-    onChange: () => {
-      fetchDirectMessages();
-    },
-  });
-
-  // Fallback polling every 3s when Supabase Realtime is not live.
-  // Ensures Emman sees Lei's new messages immediately without manual refresh.
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isAdmin) fetchDirectMessages();
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [isAdmin]);
 
   useEffect(() => {
     if (activeTab === 'messages') {
@@ -131,41 +111,13 @@ export default function AdminControlCenter() {
   const handleSendReply = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!replyText.trim() || sendingReply) return;
-
-    setSendingReply(true);
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sender: 'emman',
-          recipient: 'lei',
-          message: replyText.trim(),
-          isHuman: true,
-        }),
-      });
-
-      if (res.ok) {
-        setReplyText('');
-        fetchDirectMessages();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSendingReply(false);
-    }
+    const text = replyText.trim();
+    setReplyText('');
+    await sendEmmanMessage(text);
   };
 
   const handleClearConversation = async () => {
-    if (!confirm('Clear all conversation messages with Lei and reset to default greeting?')) return;
-    try {
-      const res = await fetch('/api/messages', { method: 'DELETE' });
-      if (res.ok) {
-        fetchDirectMessages();
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    await clearEmmanConversation();
   };
 
   const fetchAdminData = async () => {
@@ -459,7 +411,7 @@ export default function AdminControlCenter() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-serif">
                 <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
-                <span>Realtime Live</span>
+                <span>{chatConnectionStatus === 'live' ? 'Realtime Live' : 'Synced'}</span>
               </div>
               <button
                 type="button"

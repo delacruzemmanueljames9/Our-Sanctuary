@@ -833,6 +833,51 @@ export async function addSharedJournalEntry(
 // 9. DIRECT MESSAGES (Emman Live Chat vs Mochi)
 // ─────────────────────────────────────────────────────────────────────────────
 
+const STORAGE_BUCKET = 'sanctuary_data';
+const DM_STORAGE_FILE = 'direct_messages.json';
+const DEFAULT_FIRST_GREETING = "Hi sweetie, whats bothering you now?";
+
+async function loadStoredDirectMessages(): Promise<DirectMessage[]> {
+  const supabase = getServiceSupabase();
+  if (!supabase) return inMemoryDirectMessages;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .download(DM_STORAGE_FILE);
+
+    if (!error && data) {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        inMemoryDirectMessages.length = 0;
+        inMemoryDirectMessages.push(...parsed);
+        return inMemoryDirectMessages;
+      }
+    }
+  } catch (e) {
+    console.warn('Storage download direct_messages fallback:', e);
+  }
+  return inMemoryDirectMessages;
+}
+
+async function saveStoredDirectMessages(messages: DirectMessage[]): Promise<void> {
+  const supabase = getServiceSupabase();
+  if (!supabase) return;
+
+  try {
+    const json = JSON.stringify(messages, null, 2);
+    await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(DM_STORAGE_FILE, Buffer.from(json), {
+        contentType: 'application/json',
+        upsert: true,
+      });
+  } catch (e) {
+    console.warn('Storage upload direct_messages fallback:', e);
+  }
+}
+
 export async function getDirectMessages(): Promise<DirectMessage[]> {
   const supabase = getServiceSupabase();
   if (supabase) {
@@ -849,10 +894,11 @@ export async function getDirectMessages(): Promise<DirectMessage[]> {
         }));
       }
     } catch (e) {
-      console.warn('Supabase getDirectMessages fallback:', e);
+      console.warn('Supabase getDirectMessages table fallback:', e);
     }
   }
-  return inMemoryDirectMessages;
+  // Persistent cloud storage fallback across all serverless instances
+  return loadStoredDirectMessages();
 }
 
 export async function sendDirectMessage(
@@ -882,23 +928,32 @@ export async function sendDirectMessage(
           createdAt: data.created_at,
         };
         inMemoryDirectMessages.push(item);
+        await saveStoredDirectMessages(inMemoryDirectMessages);
         return item;
       }
     } catch (e) {
-      console.warn('Supabase sendDirectMessage fallback:', e);
+      console.warn('Supabase sendDirectMessage table fallback:', e);
     }
   }
+
+  // Load latest stored messages before appending to prevent race conditions
+  const currentMessages = await loadStoredDirectMessages();
   const created: DirectMessage = {
-    id: `dm-${Date.now()}`,
+    id: `dm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     ...msg,
     createdAt: new Date().toISOString(),
   };
-  inMemoryDirectMessages.push(created);
+  currentMessages.push(created);
+  inMemoryDirectMessages.length = 0;
+  inMemoryDirectMessages.push(...currentMessages);
+
+  // Persist to Supabase Storage immediately
+  await saveStoredDirectMessages(inMemoryDirectMessages);
   return created;
 }
 
 export async function clearDirectMessages(): Promise<boolean> {
-  const defaultFirstMsg = "Hi sweetie, whats bothering you now?";
+  const defaultFirstMsg = DEFAULT_FIRST_GREETING;
   const supabase = getServiceSupabase();
   if (supabase) {
     try {
@@ -910,7 +965,7 @@ export async function clearDirectMessages(): Promise<boolean> {
         is_human: true,
       });
     } catch (e) {
-      console.warn('Supabase clearDirectMessages fallback:', e);
+      console.warn('Supabase clearDirectMessages table fallback:', e);
     }
   }
   inMemoryDirectMessages.length = 0;
@@ -922,6 +977,9 @@ export async function clearDirectMessages(): Promise<boolean> {
     isHuman: true,
     createdAt: new Date().toISOString(),
   });
+
+  // Persist cleared state to Supabase Storage
+  await saveStoredDirectMessages(inMemoryDirectMessages);
   return true;
 }
 
