@@ -37,7 +37,7 @@ const SUPPORT_PREFERENCES = [
 
 export default function EmotionalSpacePage() {
   const [checkins, setCheckins] = useState<EmotionalCheckin[]>([]);
-  const [author, setAuthor] = useState<'emman' | 'lei'>('emman');
+  const [author, setAuthor] = useState<'emman' | 'lei'>('lei');
   const [selectedMood, setSelectedMood] = useState<string>('peaceful');
   const [selectedSupport, setSelectedSupport] = useState<string>('listen');
   const [reflection, setReflection] = useState<string>('');

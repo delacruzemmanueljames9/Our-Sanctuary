@@ -263,7 +263,7 @@ function SanctuaryPageInner() {
                   <span className="font-serif tracking-wider">Mochi AI Companion</span>
                 </button>
                 <p className="text-[10px] text-slate-600 font-serif italic hidden sm:block">
-                  Emman &amp; Lei&apos;s Celestial World
+                  A Celestial Sanctuary for Lei
                 </p>
               </div>
             </motion.div>

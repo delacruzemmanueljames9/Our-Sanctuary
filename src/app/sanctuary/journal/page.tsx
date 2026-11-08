@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Users,
   Feather,
+  Share2,
 } from 'lucide-react';
 import { PrivateJournalEntry } from '@/types/sanctuary';
 import { RoomShell } from '@/components/sanctuary/RoomShell';
@@ -240,6 +241,28 @@ export default function PrivateJournalPage() {
           setNewContent('');
           fetchEntries(activeTab);
         }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleShareToShared = async (entry: PrivateJournalEntry) => {
+    try {
+      const res = await fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'shared',
+          user: activeTab,
+          title: entry.title,
+          content: entry.content,
+          moodTag: entry.moodTag || 'Shared Memory',
+        }),
+      });
+      if (res.ok) {
+        alert('This reflection has been shared to Our Shared Chronicles!');
+        fetchSharedEntries();
       }
     } catch (e) {
       console.error(e);
@@ -524,14 +547,25 @@ export default function PrivateJournalPage() {
                         </div>
                         <div className="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 font-serif">
                           <span>Penned {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEntry(entry.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors p-1"
-                            title="Delete entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleShareToShared(entry)}
+                              className="flex items-center gap-1 text-indigo-300 hover:text-indigo-200 transition-colors p-1"
+                              title="Share this reflection with Our Shared Chronicles"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Share</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteEntry(entry.id)}
+                              className="text-red-400 hover:text-red-300 transition-colors p-1"
+                              title="Delete entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}

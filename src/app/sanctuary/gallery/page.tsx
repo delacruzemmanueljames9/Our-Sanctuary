@@ -108,7 +108,7 @@ export default function MemoryGalleryPage() {
 
   return (
     <RoomShell><div className="px-4 py-8 md:px-12 max-w-7xl mx-auto">
-      {/* Header */}
+      {/* Header — Personalized for Lei */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -116,26 +116,14 @@ export default function MemoryGalleryPage() {
               Room 02 &bull; Memory Gallery
             </span>
             <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-sky-400">{memories.length} Preserved Moments</span>
+            <span className="text-xs text-sky-400">{memories.length} Cherished Photos for Lei</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-serif text-white">
-            The Hall of Cherished Moments
+            The Gallery of Cherished Memories
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            A timeless sanctuary of our shared adventures, quiet smiles, and sacred memories.
+            A timeless sanctuary of our adventures, gentle smiles, and beautiful memories.
           </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-sanctuary-gold text-slate-950 font-serif text-xs font-semibold tracking-wider hover:bg-sanctuary-gold-light transition-all shadow-celestial-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Preserve Memory</span>
-          </button>
         </div>
       </div>
 

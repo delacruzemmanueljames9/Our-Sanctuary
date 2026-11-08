@@ -118,10 +118,10 @@ export default function OurUniversePage() {
             <span className="text-xs text-cyan-300">Celestial Starmap & Dreams</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-serif text-white">
-            The Constellation of Our Shared Dreams
+            The Constellation of Our Shared Dreams &amp; Bucket Lists
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Every star in this observatory represents a goal, an upcoming voyage, or a dream we will manifest together.
+            Every star represents a milestone, adventure, or wish waiting for us. Add, update, and complete our shared goals anytime.
           </p>
         </div>
 

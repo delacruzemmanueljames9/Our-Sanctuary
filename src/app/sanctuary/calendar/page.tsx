@@ -92,7 +92,7 @@ export default function SanctuaryCalendarPage() {
 
   return (
     <RoomShell><div className="px-4 py-8 md:px-12 max-w-5xl mx-auto">
-      {/* Header */}
+      {/* Header — Personalized for Lei */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -100,24 +100,15 @@ export default function SanctuaryCalendarPage() {
               Room 09 &bull; Calendar
             </span>
             <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-purple-300">Milestones & Upcoming Dates</span>
+            <span className="text-xs text-purple-300">Milestones &amp; Upcoming Anniversaries</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-serif text-white">
             The Celestial Calendar of Us
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Never forget a promise, an anniversary, or an anticipated evening under the stars.
+            Never forget a promise, an anniversary, or an anticipated evening together under the starlight.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setIsAddOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-serif text-xs font-semibold tracking-wider hover:bg-purple-500 transition-all shadow-lg"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Sanctuary Event</span>
-        </button>
       </div>
 
       {/* Events Timeline List */}

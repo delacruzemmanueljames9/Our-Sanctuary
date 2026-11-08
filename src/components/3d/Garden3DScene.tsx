@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useMemo, useState, useCallback, Suspense } from 'react';
-import { Canvas, useFrame, ThreeElements } from '@react-three/fiber';
-import { OrbitControls, Environment, Html } from '@react-three/drei';
+import React, { useRef, useMemo, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { GardenPlant } from '@/types/sanctuary';
 
@@ -12,6 +12,7 @@ interface FlowerMeshProps {
   plant: GardenPlant;
   position: [number, number, number];
   selected: boolean;
+  isWatering: boolean;
   onClick: () => void;
 }
 
@@ -26,21 +27,73 @@ function petalColor(type: string): string {
   }
 }
 
-function FlowerMesh({ plant, position, selected, onClick }: FlowerMeshProps) {
+// ─── Water Droplet Shower (Triggered when watering) ───────────────────────────
+
+function WaterParticleShower({ position }: { position: [number, number, number] }) {
+  const count = 45;
+  const ref = useRef<THREE.Points>(null!);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = position[0] + (Math.random() - 0.5) * 0.45;
+      arr[i * 3 + 1] = position[1] + 0.8 + Math.random() * 0.9;
+      arr[i * 3 + 2] = position[2] + (Math.random() - 0.5) * 0.45;
+    }
+    return arr;
+  }, [position]);
+
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    const pos = ref.current.geometry.attributes.position;
+    for (let i = 0; i < count; i++) {
+      let y = pos.getY(i) - delta * 3.5;
+      if (y < position[1]) {
+        y = position[1] + 0.8 + Math.random() * 0.9;
+      }
+      pos.setY(i, y);
+    }
+    pos.needsUpdate = true;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#7dd3fc"
+        size={0.06}
+        transparent
+        opacity={0.9}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
+
+function FlowerMesh({ plant, position, selected, isWatering, onClick }: FlowerMeshProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const color = petalColor(plant.plantType);
   const stage = Math.min(Math.max(plant.growthStage, 1), 4);
 
-  // Gentle sway animation
+  // Gentle sway animation + bounce response on watering
   useFrame((state) => {
     if (groupRef.current) {
       const t = state.clock.elapsedTime;
       groupRef.current.rotation.z = Math.sin(t * 0.8 + position[0]) * 0.04;
       groupRef.current.rotation.x = Math.sin(t * 0.6 + position[2]) * 0.02;
-      if (selected) {
+
+      if (isWatering) {
+        groupRef.current.position.y = position[1] + Math.sin(t * 12) * 0.05;
+        groupRef.current.scale.setScalar(1 + Math.sin(t * 8) * 0.08);
+      } else if (selected) {
         groupRef.current.position.y = position[1] + Math.sin(t * 2) * 0.04;
+        groupRef.current.scale.setScalar(1);
       } else {
         groupRef.current.position.y = position[1];
+        groupRef.current.scale.setScalar(1);
       }
     }
   });
@@ -55,10 +108,14 @@ function FlowerMesh({ plant, position, selected, onClick }: FlowerMeshProps) {
       position={position}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
-      {/* Soil patch */}
+      {/* Soil patch — darkens and glistens when watered */}
       <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.18, 12]} />
-        <meshStandardMaterial color="#4a3020" roughness={1} />
+        <circleGeometry args={[0.22, 16]} />
+        <meshStandardMaterial
+          color={isWatering ? '#22140a' : '#4a3020'}
+          roughness={isWatering ? 0.3 : 1}
+          metalness={isWatering ? 0.4 : 0}
+        />
       </mesh>
 
       {/* Stem */}
@@ -103,7 +160,7 @@ function FlowerMesh({ plant, position, selected, onClick }: FlowerMeshProps) {
                   side={THREE.DoubleSide}
                   roughness={0.4}
                   emissive={color}
-                  emissiveIntensity={selected ? 0.3 : 0.08}
+                  emissiveIntensity={isWatering ? 0.6 : selected ? 0.3 : 0.08}
                 />
               </mesh>
             );
@@ -115,30 +172,35 @@ function FlowerMesh({ plant, position, selected, onClick }: FlowerMeshProps) {
               color="#f5e070"
               roughness={0.5}
               emissive="#f0c820"
-              emissiveIntensity={0.2}
+              emissiveIntensity={isWatering ? 0.5 : 0.2}
             />
           </mesh>
         </group>
       )}
 
-      {/* Stage 1 — just a bud */}
+      {/* Stage 1 — Tender Bud */}
       {!showFullBloom && (
         <mesh position={[0, stemHeight + 0.04, 0]}>
           <sphereGeometry args={[0.055, 8, 8]} />
-          <meshStandardMaterial color={color} roughness={0.5} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.5}
+            emissive={color}
+            emissiveIntensity={isWatering ? 0.4 : 0.1}
+          />
         </mesh>
       )}
 
-      {/* Selection glow ring */}
-      {selected && (
+      {/* Selection / Water Glow Ring */}
+      {(selected || isWatering) && (
         <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.22, 0.28, 24]} />
+          <ringGeometry args={[0.22, 0.3, 24]} />
           <meshStandardMaterial
-            color="#f5e070"
-            emissive="#f5e070"
-            emissiveIntensity={1.2}
+            color={isWatering ? '#38bdf8' : '#f5e070'}
+            emissive={isWatering ? '#38bdf8' : '#f5e070'}
+            emissiveIntensity={1.5}
             transparent
-            opacity={0.6}
+            opacity={0.7}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -147,7 +209,7 @@ function FlowerMesh({ plant, position, selected, onClick }: FlowerMeshProps) {
   );
 }
 
-// ─── Grass Blades (instanced) ─────────────────────────────────────────────────
+// ─── Grass Blades ─────────────────────────────────────────────────────────────
 
 function GrassField({ count = 200 }: { count?: number }) {
   const ref = useRef<THREE.InstancedMesh>(null!);
@@ -194,17 +256,14 @@ function GrassField({ count = 200 }: { count?: number }) {
 function GardenGround() {
   return (
     <>
-      {/* Main grass plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[18, 18, 1, 1]} />
         <meshStandardMaterial color="#2d6030" roughness={0.95} />
       </mesh>
-      {/* Inner soil ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <circleGeometry args={[7, 32]} />
         <meshStandardMaterial color="#3d2a14" roughness={1} />
       </mesh>
-      {/* Pebble path ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <ringGeometry args={[6.6, 7.2, 32]} />
         <meshStandardMaterial color="#8a7060" roughness={1} />
@@ -216,7 +275,7 @@ function GardenGround() {
 // ─── Particle Petal Drift ─────────────────────────────────────────────────────
 
 function PetalParticles() {
-  const count = 30;
+  const count = 35;
   const ref = useRef<THREE.Points>(null!);
 
   const positions = useMemo(() => {
@@ -234,7 +293,7 @@ function PetalParticles() {
     const pos = ref.current.geometry.attributes.position;
     const t = state.clock.elapsedTime;
     for (let i = 0; i < count; i++) {
-      pos.setY(i, ((pos.getY(i) - 0.004 + 3) % 3));
+      pos.setY(i, (pos.getY(i) - 0.004 + 3) % 3);
       pos.setX(i, pos.getX(i) + Math.sin(t * 0.3 + i) * 0.002);
     }
     pos.needsUpdate = true;
@@ -245,7 +304,7 @@ function PetalParticles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color="#f4b8d0" size={0.04} transparent opacity={0.7} sizeAttenuation />
+      <pointsMaterial color="#f4b8d0" size={0.045} transparent opacity={0.75} sizeAttenuation />
     </points>
   );
 }
@@ -256,6 +315,7 @@ interface Garden3DSceneProps {
   plants: GardenPlant[];
   onSelectPlant: (plant: GardenPlant | null) => void;
   selectedPlantId: string | null;
+  wateringPlantId?: string | null;
 }
 
 function computePosition(index: number, total: number): [number, number, number] {
@@ -275,7 +335,7 @@ function computePosition(index: number, total: number): [number, number, number]
   if (ring === 0) return [0, 0, 0];
   const radius = ring * 1.4;
   const angle = (posInRing / rings[ring]) * Math.PI * 2;
-  const jitter = (Math.sin(index * 73.1) * 0.3);
+  const jitter = Math.sin(index * 73.1) * 0.3;
   return [
     Math.cos(angle) * radius + jitter,
     0,
@@ -283,17 +343,17 @@ function computePosition(index: number, total: number): [number, number, number]
   ];
 }
 
-function GardenScene({ plants, onSelectPlant, selectedPlantId }: Garden3DSceneProps) {
+function GardenScene({ plants, onSelectPlant, selectedPlantId, wateringPlantId }: Garden3DSceneProps) {
   return (
     <>
       <color attach="background" args={['#0a1a0a']} />
       <fog attach="fog" args={['#0a1a0a', 10, 22]} />
 
       {/* Lighting */}
-      <ambientLight intensity={0.6} color="#c8e8c0" />
+      <ambientLight intensity={0.65} color="#c8e8c0" />
       <directionalLight
         position={[6, 10, 4]}
-        intensity={1.4}
+        intensity={1.5}
         color="#fff8e8"
         castShadow
       />
@@ -306,14 +366,19 @@ function GardenScene({ plants, onSelectPlant, selectedPlantId }: Garden3DScenePr
 
       {plants.map((plant, index) => {
         const pos = computePosition(index, plants.length);
+        const isWatering = wateringPlantId === plant.id;
         return (
-          <FlowerMesh
-            key={plant.id}
-            plant={plant}
-            position={pos}
-            selected={selectedPlantId === plant.id}
-            onClick={() => onSelectPlant(selectedPlantId === plant.id ? null : plant)}
-          />
+          <React.Fragment key={plant.id}>
+            <FlowerMesh
+              plant={plant}
+              position={pos}
+              selected={selectedPlantId === plant.id}
+              isWatering={isWatering}
+              onClick={() => onSelectPlant(selectedPlantId === plant.id ? null : plant)}
+            />
+            {/* Active Watering Shower Effect */}
+            {isWatering && <WaterParticleShower position={pos} />}
+          </React.Fragment>
         );
       })}
 
@@ -324,7 +389,7 @@ function GardenScene({ plants, onSelectPlant, selectedPlantId }: Garden3DScenePr
         maxPolarAngle={Math.PI / 2.1}
         minPolarAngle={0.2}
         autoRotate={!selectedPlantId}
-        autoRotateSpeed={0.4}
+        autoRotateSpeed={0.35}
         target={[0, 0.5, 0]}
       />
     </>
@@ -333,7 +398,7 @@ function GardenScene({ plants, onSelectPlant, selectedPlantId }: Garden3DScenePr
 
 // ─── Exported Wrapper ─────────────────────────────────────────────────────────
 
-export function Garden3DScene({ plants, onSelectPlant, selectedPlantId }: Garden3DSceneProps) {
+export function Garden3DScene({ plants, onSelectPlant, selectedPlantId, wateringPlantId }: Garden3DSceneProps) {
   return (
     <div className="w-full h-full">
       <Canvas
@@ -346,6 +411,7 @@ export function Garden3DScene({ plants, onSelectPlant, selectedPlantId }: Garden
             plants={plants}
             onSelectPlant={onSelectPlant}
             selectedPlantId={selectedPlantId}
+            wateringPlantId={wateringPlantId}
           />
         </Suspense>
       </Canvas>
