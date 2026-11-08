@@ -17,7 +17,7 @@ export function RoomShell({ children, className = '' }: RoomShellProps) {
   return (
     <div className={`relative min-h-screen bg-[#05070f] ${className}`}>
       {/* Fixed Top Bar: Back button (left) + Admin button (right) */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 pointer-events-none" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
         <button
           type="button"
           onClick={() => router.push('/sanctuary?explore=true')}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Cinzel, Cormorant_Garamond, Inter } from 'next/font/google';
 import './globals.css';
 
@@ -24,6 +24,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Our Sanctuary — Emman & Lei',
   description: 'A handcrafted celestial sanctuary and private digital world for Emman and Lei.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({

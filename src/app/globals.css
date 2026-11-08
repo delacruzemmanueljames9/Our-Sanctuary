@@ -69,3 +69,59 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* ─── Keyboard-Safe Viewport ─────────────────────────────────────────────── */
+/* Use dvh (dynamic viewport height) so mobile browsers with keyboard open    */
+/* don't overflow. Falls back to svh, then 100vh.                              */
+html, body {
+  height: 100%;
+}
+
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Chat input container — always above keyboard on iOS/Android */
+.chat-input-safe {
+  position: sticky;
+  bottom: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Safe area padding for bottom nav on devices with home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── Scrollbar Utilities ─────────────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Performance: reduce motion for users who prefer it ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Mobile Touch Targets ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

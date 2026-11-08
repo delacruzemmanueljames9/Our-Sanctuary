@@ -535,7 +535,7 @@ export default function AdminControlCenter() {
           {/* Reply Input Bar */}
           <form
             onSubmit={handleSendReply}
-            className="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/90 flex items-center gap-2"
+            className="chat-input-safe p-3 sm:p-4 border-t border-slate-800 bg-slate-950/95 flex items-center gap-2"
           >
             <input
               type="text"
