@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDirectMessages, sendDirectMessage } from '@/lib/supabase/db';
+import { getDirectMessages, sendDirectMessage, clearDirectMessages } from '@/lib/supabase/db';
 
 export async function GET() {
   const messages = await getDirectMessages();
@@ -26,5 +26,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Direct message error:', error);
     return NextResponse.json({ error: 'Failed to dispatch message.' }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    await clearDirectMessages();
+    return NextResponse.json({ success: true, message: 'Conversation deleted successfully.' });
+  } catch (error) {
+    console.error('Clear direct messages error:', error);
+    return NextResponse.json({ error: 'Failed to clear conversation.' }, { status: 500 });
   }
 }

@@ -62,7 +62,7 @@ const inMemoryDirectMessages: DirectMessage[] = [
     id: 'dm-1',
     sender: 'emman',
     recipient: 'lei',
-    message: 'Welcome to our sanctuary, my love! Whenever you leave a message here, I will see it in real-time.',
+    message: "Hi sweetie, whats bothering you now?",
     isHuman: true,
     createdAt: new Date().toISOString(),
   },
@@ -895,6 +895,34 @@ export async function sendDirectMessage(
   };
   inMemoryDirectMessages.push(created);
   return created;
+}
+
+export async function clearDirectMessages(): Promise<boolean> {
+  const defaultFirstMsg = "Hi sweetie, whats bothering you now?";
+  const supabase = getServiceSupabase();
+  if (supabase) {
+    try {
+      await supabase.from('direct_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('direct_messages').insert({
+        sender: 'emman',
+        recipient: 'lei',
+        message: defaultFirstMsg,
+        is_human: true,
+      });
+    } catch (e) {
+      console.warn('Supabase clearDirectMessages fallback:', e);
+    }
+  }
+  inMemoryDirectMessages.length = 0;
+  inMemoryDirectMessages.push({
+    id: `dm-${Date.now()}`,
+    sender: 'emman',
+    recipient: 'lei',
+    message: defaultFirstMsg,
+    isHuman: true,
+    createdAt: new Date().toISOString(),
+  });
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

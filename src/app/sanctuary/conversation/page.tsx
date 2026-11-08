@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Send, Heart, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, Heart, Sparkles, Trash2 } from 'lucide-react';
 import { RoomShell } from '@/components/sanctuary/RoomShell';
 import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 
@@ -27,6 +27,7 @@ export default function ConversationRoomPage() {
   const [messages, setMessages] = useState<DirectMsgItem[]>([]);
   const [input, setInput] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async () => {
@@ -83,6 +84,21 @@ export default function ConversationRoomPage() {
     }
   };
 
+  const handleClearConversation = async () => {
+    if (!confirm('Delete conversation history and start fresh with Emman?')) return;
+    setIsClearing(true);
+    try {
+      const res = await fetch('/api/messages', { method: 'DELETE' });
+      if (res.ok) {
+        await fetchMessages();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
@@ -92,20 +108,33 @@ export default function ConversationRoomPage() {
     <RoomShell>
       <div className="px-4 py-8 md:px-12 max-w-4xl mx-auto flex flex-col h-[calc(100vh-80px)]">
         {/* Header */}
-        <div className="text-center md:text-left mb-6 pb-4 border-b border-rose-900/20 shrink-0">
-          <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-            <span className="text-xs font-serif uppercase tracking-widest text-sanctuary-gold">
-              Room 04 &bull; Conversation
-            </span>
-            <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-rose-300">Talk to Emman</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-rose-900/20 shrink-0">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-serif uppercase tracking-widest text-sanctuary-gold">
+                Room 04 &bull; Conversation
+              </span>
+              <span className="text-xs text-slate-500">•</span>
+              <span className="text-xs text-rose-300">Talk to Emman</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-serif text-white tracking-wide">
+              Talk to Emman
+            </h1>
+            <p className="text-xs text-slate-400 mt-1 max-w-lg">
+              Direct real-time messages between you and Emman.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-serif text-white tracking-wide">
-            Talk to Emman
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-lg">
-            Direct real-time messages between you and Emman.
-          </p>
+
+          <button
+            type="button"
+            disabled={isClearing}
+            onClick={handleClearConversation}
+            className="self-start sm:self-auto flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-slate-700/70 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 text-xs font-serif transition-colors cursor-pointer"
+            title="Delete conversation"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Convo</span>
+          </button>
         </div>
 
         {/* Chat Console Card */}

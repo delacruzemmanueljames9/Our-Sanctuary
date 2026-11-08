@@ -336,3 +336,8 @@ EXCEPTION
     -- Fallback if publication doesn't exist yet
     NULL;
 END $$;
+
+-- 8. Seed Initial Direct Message
+INSERT INTO direct_messages (sender, recipient, message, is_human)
+VALUES ('emman', 'lei', 'Hi sweetie, whats bothering you now?', true)
+ON CONFLICT DO NOTHING;

@@ -147,6 +147,18 @@ export default function AdminControlCenter() {
     }
   };
 
+  const handleClearConversation = async () => {
+    if (!confirm('Clear all conversation messages with Lei and reset to default greeting?')) return;
+    try {
+      const res = await fetch('/api/messages', { method: 'DELETE' });
+      if (res.ok) {
+        fetchDirectMessages();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const fetchAdminData = async () => {
     try {
       const res = await fetch('/api/admin/settings');
@@ -435,9 +447,20 @@ export default function AdminControlCenter() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-serif">
-              <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
-              <span>Realtime Live</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-serif">
+                <Radio className="w-3 h-3 animate-pulse text-emerald-400" />
+                <span>Realtime Live</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearConversation}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 text-xs font-serif transition-colors cursor-pointer"
+                title="Delete conversation history"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear Convo</span>
+              </button>
             </div>
           </div>
 

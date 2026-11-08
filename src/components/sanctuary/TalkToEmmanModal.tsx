@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Send, Heart, MessageCircle } from 'lucide-react';
+import { X, Send, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { useSanctuaryRealtime } from '@/hooks/useSanctuaryRealtime';
 
 interface TalkToEmmanModalProps {
@@ -31,6 +31,7 @@ export function TalkToEmmanModal({ isOpen, onClose }: TalkToEmmanModalProps) {
   const [directMessages, setDirectMessages] = useState<DirectMsgItem[]>([]);
   const [directInput, setDirectInput] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +93,21 @@ export function TalkToEmmanModal({ isOpen, onClose }: TalkToEmmanModalProps) {
     }
   };
 
+  const handleClearConversation = async () => {
+    if (!confirm('Delete conversation history and start fresh with Emman?')) return;
+    setIsClearing(true);
+    try {
+      const res = await fetch('/api/messages', { method: 'DELETE' });
+      if (res.ok) {
+        await fetchDirectMessages();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(directInput);
@@ -122,14 +138,25 @@ export function TalkToEmmanModal({ isOpen, onClose }: TalkToEmmanModalProps) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
-            title="Close conversation"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isClearing}
+              onClick={handleClearConversation}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+              title="Delete conversation"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+              title="Close conversation"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Messages Body */}
@@ -225,3 +252,5 @@ export function TalkToEmmanModal({ isOpen, onClose }: TalkToEmmanModalProps) {
     </div>
   );
 }
+
+export const MochiChatModal = TalkToEmmanModal;
